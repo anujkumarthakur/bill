@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class ChargeScreen extends StatefulWidget {
@@ -128,7 +131,11 @@ class _S extends State<ChargeScreen> {
           ),
           const SizedBox(height: 24),
           SizedBox(width: double.infinity, height: 54, child: ElevatedButton.icon(
-            onPressed: () => context.push('/payment', extra: double.tryParse(amount.text) ?? 0),
+            onPressed: () {
+  final amt = double.tryParse(amount.text) ?? 0;
+  http.post(Uri.parse('$apiBaseUrl/api/charge'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amt}));
+  context.push('/payment', extra: amt);
+},
             icon: const Icon(Icons.lock, size: 18),
             label: const Text('Continue to Payment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             style: AppStyles.primaryButton(double.infinity),

