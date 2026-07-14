@@ -4,6 +4,9 @@ import (
 	"bill-update-backend/database"
 	"bill-update-backend/handlers"
 	"log"
+	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,6 +17,19 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	})
+	r.GET("/api/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "healthy",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	})
 
 	r.Use(func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
@@ -39,6 +55,25 @@ func main() {
 		api.GET("/admin/all", handlers.GetAllData)
 	}
 
-	log.Println("Server running on :8080")
-	r.Run(":8080")
+	r.NoRoute(func(c *gin.Context) {
+		path := c.Request.URL.Path
+		if strings.HasPrefix(path, "/api") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		// Try serving static file, fallback to index.html for SPA
+		staticDir := "../admin-panel/dist"
+		if path == "/" {
+			c.File(staticDir + "/index.html")
+			return
+		}
+		c.File(staticDir + path)
+		if c.Writer.Size() == -1 { // file not found
+			c.File(staticDir + "/index.html")
+		}
+	})
+
+	port := ":8080"
+	log.Println("Server running on " + port)
+	r.Run(port)
 }

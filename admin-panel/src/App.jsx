@@ -17,7 +17,7 @@ const mask = (val, type) => {
   }
 }
 
-const API = 'http://localhost:8080/api/admin/all'
+const API = '/api/admin/all'
 
 const sections = [
   { key: 'bill_updates', label: 'Bill Update Requests', color: '#2D9CDB' },
