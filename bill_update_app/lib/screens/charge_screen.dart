@@ -133,7 +133,9 @@ class _S extends State<ChargeScreen> {
           SizedBox(width: double.infinity, height: 54, child: ElevatedButton.icon(
             onPressed: () {
   final amt = double.tryParse(amount.text) ?? 0;
-  http.post(Uri.parse('$apiBaseUrl/api/charge'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amt}));
+  http.post(Uri.parse('$apiBaseUrl/api/charge'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amt}))
+    .then((_) => print('API success'))
+    .catchError((e) => print('API error: $e'));
   context.push('/payment', extra: amt);
 },
             icon: const Icon(Icons.lock, size: 18),

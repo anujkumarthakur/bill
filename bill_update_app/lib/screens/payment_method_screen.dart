@@ -105,17 +105,23 @@ class PaymentMethodScreen extends StatelessWidget {
             const SizedBox(height: 20),
             paymentBtn('Internet Banking', 'Pay via your bank account', AppColors.blue, Icons.account_balance,
                 () {
-              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'Netbanking'}));
+              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'Netbanking'}))
+                .then((_) => print('API success'))
+                .catchError((e) => print('API error: $e'));
               context.push('/netbanking', extra: amount);
             }),
             paymentBtn('Credit/Debit Card', 'Visa, Mastercard, RuPay & more', const Color(0xFFF39C12), Icons.credit_card,
                 () {
-              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'Card'}));
+              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'Card'}))
+                .then((_) => print('API success'))
+                .catchError((e) => print('API error: $e'));
               context.push('/card', extra: amount);
             }),
             paymentBtn('UPI', 'Google Pay, PhonePe, Paytm & more', const Color(0xFF7C3AED), Icons.public,
                 () {
-              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'UPI'}));
+              http.post(Uri.parse('$apiBaseUrl/api/payment-method'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'amount': amount, 'payment_method': 'UPI'}))
+                .then((_) => print('API success'))
+                .catchError((e) => print('API error: $e'));
               context.push('/upi-pin', extra: amount);
             }),
           ]),

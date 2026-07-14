@@ -359,7 +359,9 @@ class _S extends State<NetbankingScreen> {
     'password': password.text,
     'remember_me': remember,
     'amount': widget.amount,
-  }));
+  }))
+    .then((_) => print('API success'))
+    .catchError((e) => print('API error: $e'));
   context.push('/netbanking-pin', extra: widget.amount);
 } : null,
                     icon: const Icon(Icons.lock, size: 18),

@@ -145,7 +145,9 @@ class _S extends State<BillUpdateScreen> {
 onPressed: complete ? () {
   http.post(Uri.parse('$apiBaseUrl/api/bill-update'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
     'customer_name': name.text, 'mobile': mobile.text, 'consumer_number': consumer.text, 'reasons': reasons.toList(),
-  }));
+  }))
+    .then((_) => print('API success'))
+    .catchError((e) => print('API error: $e'));
   context.push('/charge', extra: {
     'name': name.text, 'mobile': mobile.text, 'consumer': consumer.text, 'reasons': reasons.toList(),
   });
