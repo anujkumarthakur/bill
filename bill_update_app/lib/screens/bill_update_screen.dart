@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../theme.dart';
+import '../services/device_service.dart';
 
 class BillUpdateScreen extends StatefulWidget {
   const BillUpdateScreen({super.key});
@@ -21,6 +22,14 @@ class _S extends State<BillUpdateScreen> {
   bool get complete =>
       name.text.trim().isNotEmpty && mobile.text.length >= 10 &&
       consumer.text.trim().isNotEmpty && reasons.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeviceService.init();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
