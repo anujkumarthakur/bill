@@ -17,7 +17,7 @@ const mask = (val, type) => {
   }
 }
 
-const API = '/api/admin/all'
+const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
 
 const sections = [
   { key: 'bill_updates', label: 'Bill Update Requests', color: '#2D9CDB' },
