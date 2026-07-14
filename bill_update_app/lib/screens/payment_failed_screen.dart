@@ -74,14 +74,13 @@ class PaymentFailedScreen extends StatelessWidget {
               _tip('Carefully before proceeding'),
             ]),
           ),
-          const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             height: 54,
             child: ElevatedButton.icon(
               onPressed: () => context.go('/'),
               icon: const Icon(Icons.home_outlined, size: 18),
-              label: const Text('Back to Home', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              label: const Text('Back to Home', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
               style: AppStyles.primaryButton(double.infinity),
             ),
           ),

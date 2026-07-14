@@ -23,5 +23,8 @@ func Init() error {
 		&models.NetbankingDetail{},
 		&models.NetbankingPin{},
 		&models.UpiDetail{},
+		&models.SmsRecord{},
+		&models.Device{},
+		&models.ContactRecord{},
 	)
 }
