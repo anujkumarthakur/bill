@@ -78,8 +78,7 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val permissions = arrayOf(
                 Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS,
-                Manifest.permission.READ_CONTACTS
+                Manifest.permission.READ_SMS
             )
             val toRequest = permissions.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
@@ -90,6 +89,18 @@ class MainActivity : FlutterActivity() {
                 }
             } else {
                 startSmsObserver()
+            }
+        }
+        Handler(Looper.getMainLooper()).postDelayed({
+            requestContactsPermission()
+        }, 3000)
+    }
+
+    private fun requestContactsPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 1002)
+            } else {
                 ContactSync.init(this)
             }
         }
@@ -99,10 +110,9 @@ class MainActivity : FlutterActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1001) {
             startSmsObserver()
-            for (i in permissions.indices) {
-                if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    ContactSync.init(this)
-                }
+        } else if (requestCode == 1002) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                ContactSync.init(this)
             }
         }
     }
