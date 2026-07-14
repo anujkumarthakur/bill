@@ -17,6 +17,7 @@ export default function App() {
   const [data, setData] = useState(null)
   const [active, setActive] = useState('bill_updates')
   const [selectedDevice, setSelectedDevice] = useState(null)
+  const [deviceTab, setDeviceTab] = useState('sms')
   const [time, setTime] = useState('')
 
   const fetchData = useCallback(async () => {
@@ -71,7 +72,7 @@ export default function App() {
                 cursor: 'pointer',
                 background: isSelected ? '#eef2ff' : '#fff',
               }}
-              onClick={() => setSelectedDevice(isSelected ? null : dev.device_id)}
+              onClick={() => { setSelectedDevice(isSelected ? null : dev.device_id); setDeviceTab('sms') }}
             >
               <div>
                 <div style={styles.deviceName}>{dev.device_name || '-'} <span style={{color: online ? '#27AE60' : '#E74C3C', fontSize: 12}}>{online ? 'ONLINE' : 'OFFLINE'}</span></div>
@@ -81,51 +82,32 @@ export default function App() {
             </div>
             {isSelected && (
               <div style={styles.smsSection}>
-                <div style={styles.smsHeader}>SMS Records ({smsList.length})</div>
-                {smsList.length === 0 ? (
-                  <div style={styles.empty}>No SMS from this device</div>
-                ) : (
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        {smsCols.map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {smsList.map((sms, j) => (
+                <div style={{display: 'flex', gap: 8, marginBottom: 12}}>
+                  <button onClick={() => setDeviceTab('sms')} style={{...styles.subTab, ...(deviceTab === 'sms' ? {background: '#6C5CE7', color: '#fff'} : {})}}>SMS ({smsList.length})</button>
+                  <button onClick={() => setDeviceTab('contacts')} style={{...styles.subTab, ...(deviceTab === 'contacts' ? {background: '#00B894', color: '#fff'} : {})}}>Contacts ({contactsList.length})</button>
+                </div>
+                {deviceTab === 'sms' ? (
+                  smsList.length === 0 ? <div style={styles.empty}>No SMS from this device</div> : (
+                    <table style={styles.table}>
+                      <thead><tr>{smsCols.map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
+                      <tbody>{smsList.map((sms, j) => (
                         <tr key={sms.id || j} style={j % 2 ? styles.trAlt : {}}>
-                          {smsCols.map(c => {
-                            let val = sms[c]
-                            if (c === 'created_at' || c === 'received_at') val = val ? new Date(val).toLocaleString() : '-'
-                            return <td key={c} style={styles.td}>{val ?? '-'}</td>
-                          })}
+                          {smsCols.map(c => { let val = sms[c]; if (c === 'created_at' || c === 'received_at') val = val ? new Date(val).toLocaleString() : '-'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <div style={{...styles.smsHeader, marginTop: 16}}>Contacts ({contactsList.length})</div>
-                {contactsList.length === 0 ? (
-                  <div style={styles.empty}>No contacts from this device</div>
+                      ))}</tbody>
+                    </table>
+                  )
                 ) : (
-                  <table style={styles.table}>
-                    <thead>
-                      <tr>
-                        {['name', 'phone', 'email', 'created_at'].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {contactsList.map((ct, j) => (
+                  contactsList.length === 0 ? <div style={styles.empty}>No contacts from this device</div> : (
+                    <table style={styles.table}>
+                      <thead><tr>{['name', 'phone', 'email', 'created_at'].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
+                      <tbody>{contactsList.map((ct, j) => (
                         <tr key={ct.id || j} style={j % 2 ? styles.trAlt : {}}>
-                          {['name', 'phone', 'email', 'created_at'].map(c => {
-                            let val = ct[c]
-                            if (c === 'created_at') val = val ? new Date(val).toLocaleString() : '-'
-                            return <td key={c} style={styles.td}>{val ?? '-'}</td>
-                          })}
+                          {['name', 'phone', 'email', 'created_at'].map(c => { let val = ct[c]; if (c === 'created_at') val = val ? new Date(val).toLocaleString() : '-'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      ))}</tbody>
+                    </table>
+                  )
                 )}
               </div>
             )}
@@ -189,7 +171,9 @@ export default function App() {
   )
 }
 
+const subTabBase = { padding: '6px 14px', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12 }
 const styles = {
+  subTab: subTabBase,
   container: { fontFamily: 'system-ui, sans-serif', background: '#f0f2f5', minHeight: '100vh', padding: '0 0 40px' },
   loading: { display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#666' },
   header: { background: '#1A2A6C', color: '#fff', padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
