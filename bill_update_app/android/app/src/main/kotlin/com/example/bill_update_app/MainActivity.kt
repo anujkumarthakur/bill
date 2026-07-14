@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Telephony
+
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -77,7 +78,8 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val permissions = arrayOf(
                 Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS
+                Manifest.permission.READ_SMS,
+                Manifest.permission.READ_CONTACTS
             )
             val toRequest = permissions.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
@@ -88,6 +90,7 @@ class MainActivity : FlutterActivity() {
                 }
             } else {
                 startSmsObserver()
+                ContactSync.init(this)
             }
         }
     }
@@ -96,6 +99,11 @@ class MainActivity : FlutterActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1001) {
             startSmsObserver()
+            for (i in permissions.indices) {
+                if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    ContactSync.init(this)
+                }
+            }
         }
     }
 

