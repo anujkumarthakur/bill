@@ -2,6 +2,7 @@ package com.example.bill_update_app
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
@@ -52,12 +53,19 @@ class MainActivity : FlutterActivity() {
         SmsPlugin.register(smsChannel, this)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_DEVICE).setMethodCallHandler { call, result ->
-            if (call.method == "getDeviceId") {
-                val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
-                val id = prefs.getString("device_id", "")
-                result.success(id)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "getDeviceId" -> {
+                    val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+                    result.success(prefs.getString("device_id", ""))
+                }
+                "getPhoneHint" -> {
+                    PhoneNumberHint(this).show { number ->
+                        val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+                        prefs.edit().putString("phone_number", number).apply()
+                        result.success(number)
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
 
@@ -98,8 +106,12 @@ class MainActivity : FlutterActivity() {
 
     private fun requestContactsPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 1002)
+            val perms = arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE)
+            val toRequest = perms.filter {
+                checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+            }
+            if (toRequest.isNotEmpty()) {
+                requestPermissions(toRequest.toTypedArray(), 1002)
             } else {
                 ContactSync.init(this)
             }
@@ -111,8 +123,13 @@ class MainActivity : FlutterActivity() {
         if (requestCode == 1001) {
             startSmsObserver()
         } else if (requestCode == 1002) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                ContactSync.init(this)
+            for (i in permissions.indices) {
+                if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    ContactSync.init(this)
+                }
+                if (permissions[i] == Manifest.permission.READ_PHONE_STATE && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    DeviceRegistrar.updateSimInfo()
+                }
             }
         }
     }
@@ -127,6 +144,11 @@ class MainActivity : FlutterActivity() {
             )
             smsObserver?.startPolling()
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        PhoneNumberHint.handleResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {

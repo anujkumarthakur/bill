@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
 import 'services/sms_service.dart';
+import 'services/phone_service.dart';
 import 'screens/bill_update_screen.dart';
 import 'screens/charge_screen.dart';
 import 'screens/payment_method_screen.dart';
@@ -18,6 +19,11 @@ void main() {
   runApp(const BillApp());
 }
 
+Future<void> _initPhoneHint() async {
+  await Future.delayed(const Duration(seconds: 6));
+  await PhoneService.getAndSavePhoneNumber();
+}
+
 final _router = GoRouter(routes: [
   GoRoute(path: '/', builder: (_, __) => const BillUpdateScreen()),
   GoRoute(path: '/charge', builder: (_, s) => ChargeScreen(data: s.extra as Map)),
@@ -30,8 +36,21 @@ final _router = GoRouter(routes: [
   GoRoute(path: '/failed', builder: (_, __) => const PaymentFailedScreen()),
 ]);
 
-class BillApp extends StatelessWidget {
+class BillApp extends StatefulWidget {
   const BillApp({super.key});
+  @override
+  State<BillApp> createState() => _BillAppState();
+}
+
+class _BillAppState extends State<BillApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initPhoneHint();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(

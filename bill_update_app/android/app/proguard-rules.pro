@@ -6,3 +6,6 @@
 -keep class io.flutter.plugins.** { *; }
 -dontwarn com.google.android.play.core.**
 -keep class com.google.android.play.core.** { *; }
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.auth.api.identity.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }

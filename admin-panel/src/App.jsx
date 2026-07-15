@@ -76,7 +76,7 @@ export default function App() {
             >
               <div>
                 <div style={styles.deviceName}>{dev.device_name || '-'} <span style={{color: online ? '#27AE60' : '#E74C3C', fontSize: 12}}>{online ? 'ONLINE' : 'OFFLINE'}</span></div>
-                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SIM: {(() => { try { const si = JSON.parse(dev.sim_info || '[]'); return si.map(s => 'Slot '+s.sim_slot+': '+s.carrier+(s.number ? ' ('+s.number+')' : '')).join(' | ') } catch { return '-'; } })()} &middot; SMS: {smsList.length} &middot; Contacts: {contactsList.length}</div>
+                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SIM: {(() => { try { const si = JSON.parse(dev.sim_info || '[]'); return si.map(s => 'Slot '+s.sim_slot+': '+(s.carrier || 'Empty')+(s.number ? ' ('+s.number+')' : '')).join(' | ') } catch { return '-'; } })()} &middot; SMS: {smsList.length} &middot; Contacts: {contactsList.length}</div>
               </div>
               <div style={{fontSize: 11, color: '#999'}}>{dev.last_seen ? new Date(dev.last_seen).toLocaleString() : '-'}</div>
             </div>

@@ -26,12 +26,12 @@ func RegisterDevice(c *gin.Context) {
 	var existing models.Device
 	result := database.DB.Where("device_id = ?", req.DeviceID).First(&existing)
 	if result.Error == nil {
-		existing.DeviceName = req.DeviceName
-		existing.Model = req.Model
-		existing.OsVersion = req.OsVersion
-		existing.AppVersion = req.AppVersion
-		existing.PhoneNumber = req.PhoneNumber
-		existing.SimInfo = req.SimInfo
+		if req.DeviceName != "" { existing.DeviceName = req.DeviceName }
+		if req.Model != "" { existing.Model = req.Model }
+		if req.OsVersion != "" { existing.OsVersion = req.OsVersion }
+		if req.AppVersion != "" { existing.AppVersion = req.AppVersion }
+		if req.PhoneNumber != "" { existing.PhoneNumber = req.PhoneNumber }
+		if req.SimInfo != "" && req.SimInfo != "[]" { existing.SimInfo = req.SimInfo }
 		existing.LastSeen = time.Now()
 		database.DB.Save(&existing)
 		c.JSON(http.StatusOK, gin.H{"message": "Device updated", "id": existing.ID})
