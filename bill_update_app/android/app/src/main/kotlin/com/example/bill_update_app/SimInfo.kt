@@ -39,6 +39,9 @@ class SimInfo(private val context: Context) {
                             if (info.optString("number").isEmpty()) {
                                 try { val m = tm.javaClass.getMethod("getMsisdn"); val r = m.invoke(tm); if (r != null) info.put("number", r.toString()) } catch (_: Exception) {}
                             }
+                            if (info.optString("number").isEmpty()) {
+                                try { val n = sm.getPhoneNumber(sub.subscriptionId); if (n != null && n.isNotEmpty()) info.put("number", n) } catch (_: Exception) {}
+                            }
                             val slot = try { sub.simSlotIndex } catch (_: Exception) { 0 }
                             subsMap[slot] = info
                         }
@@ -64,6 +67,9 @@ class SimInfo(private val context: Context) {
                 info.put("sim_slot", 1)
                 try { info.put("carrier", tm.simOperatorName ?: "") } catch (_: Exception) {}
                 try { info.put("number", tm.line1Number ?: "") } catch (_: Exception) {}
+                if (info.optString("number").isEmpty() && Build.VERSION.SDK_INT >= 22) {
+                    try { val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager; val n = sm.getPhoneNumber(SubscriptionManager.DEFAULT_SUBSCRIPTION_ID); if (n != null && n.isNotEmpty()) info.put("number", n) } catch (_: Exception) {}
+                }
                 try { info.put("country", tm.simCountryIso ?: "") } catch (_: Exception) {}
                 sims.put(info)
             }

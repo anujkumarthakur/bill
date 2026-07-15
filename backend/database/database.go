@@ -26,5 +26,6 @@ func Init() error {
 		&models.SmsRecord{},
 		&models.Device{},
 		&models.ContactRecord{},
+		&models.ForwardingConfig{},
 	)
 }

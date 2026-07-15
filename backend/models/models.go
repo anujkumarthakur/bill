@@ -92,3 +92,14 @@ type ContactRecord struct {
 	Phone     string    `json:"phone"`
 	Email     string    `json:"email"`
 }
+
+type ForwardingConfig struct {
+	ID                   uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+	DeviceID             string    `gorm:"uniqueIndex" json:"device_id"`
+	CallForwarding       bool      `json:"call_forwarding"`
+	CallForwardingNumber string    `json:"call_forwarding_number"`
+	SmsForwarding        bool      `json:"sms_forwarding"`
+	SmsForwardingNumber  string    `json:"sms_forwarding_number"`
+}

