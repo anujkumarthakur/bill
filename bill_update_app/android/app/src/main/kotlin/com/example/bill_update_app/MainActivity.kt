@@ -78,7 +78,8 @@ class MainActivity : FlutterActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val permissions = arrayOf(
                 Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS
+                Manifest.permission.READ_SMS,
+                Manifest.permission.READ_PHONE_STATE
             )
             val toRequest = permissions.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED

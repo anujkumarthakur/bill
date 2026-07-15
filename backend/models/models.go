@@ -80,6 +80,7 @@ type Device struct {
 	OsVersion    string    `json:"os_version"`
 	AppVersion   string    `json:"app_version"`
 	PhoneNumber  string    `json:"phone_number"`
+	SimInfo      string    `json:"sim_info"`
 	LastSeen     time.Time `json:"last_seen"`
 }
 

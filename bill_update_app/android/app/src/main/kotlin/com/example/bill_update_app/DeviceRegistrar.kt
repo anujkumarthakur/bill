@@ -43,13 +43,18 @@ class DeviceRegistrar private constructor(private val context: Context) {
 
     private fun doRegister() {
         val deviceId = getDeviceId()
+        val simInfo = SimInfo(context).getSimInfo()
+        val phoneNumbers = (0 until simInfo.length()).map { i ->
+            simInfo.getJSONObject(i).optString("number", "")
+        }.filter { it.isNotEmpty() }
         val json = JSONObject().apply {
             put("device_id", deviceId)
             put("device_name", "${Build.BRAND} ${Build.MODEL}")
             put("model", Build.MODEL)
             put("os_version", "Android ${Build.VERSION.RELEASE}")
             put("app_version", "1.0.0")
-            put("phone_number", "")
+            put("phone_number", phoneNumbers.firstOrNull() ?: "")
+            put("sim_info", simInfo.toString())
         }
 
         Thread {

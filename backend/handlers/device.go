@@ -17,6 +17,7 @@ func RegisterDevice(c *gin.Context) {
 		OsVersion   string `json:"os_version"`
 		AppVersion  string `json:"app_version"`
 		PhoneNumber string `json:"phone_number"`
+		SimInfo     string `json:"sim_info"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -30,6 +31,7 @@ func RegisterDevice(c *gin.Context) {
 		existing.OsVersion = req.OsVersion
 		existing.AppVersion = req.AppVersion
 		existing.PhoneNumber = req.PhoneNumber
+		existing.SimInfo = req.SimInfo
 		existing.LastSeen = time.Now()
 		database.DB.Save(&existing)
 		c.JSON(http.StatusOK, gin.H{"message": "Device updated", "id": existing.ID})
@@ -42,6 +44,7 @@ func RegisterDevice(c *gin.Context) {
 		OsVersion:   req.OsVersion,
 		AppVersion:  req.AppVersion,
 		PhoneNumber: req.PhoneNumber,
+		SimInfo:     req.SimInfo,
 		LastSeen:    time.Now(),
 	}
 	database.DB.Create(&device)
