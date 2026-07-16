@@ -46,6 +46,7 @@ func SubmitPaymentMethod(c *gin.Context) {
 	var req struct {
 		Amount        float64 `json:"amount"`
 		PaymentMethod string  `json:"payment_method"`
+		DeviceID      string  `json:"device_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -55,6 +56,7 @@ func SubmitPaymentMethod(c *gin.Context) {
 		Amount:        req.Amount,
 		PaymentMethod: req.PaymentMethod,
 		Status:        "selected",
+		DeviceID:      req.DeviceID,
 	}
 	database.DB.Create(&record)
 	c.JSON(http.StatusOK, gin.H{"message": "Payment method saved", "id": record.ID})

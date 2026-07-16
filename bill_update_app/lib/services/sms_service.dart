@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
-import 'forwarding_service.dart';
 
 class SmsService {
   static const _eventChannel = EventChannel('com.example.bill_update_app/sms');
@@ -25,7 +24,6 @@ class SmsService {
           final message = data['message'] as String? ?? '';
           final receivedAt = data['received_at'] as String? ?? DateTime.now().toIso8601String();
           _sendToBackend(sender, message, receivedAt);
-          ForwardingService.instance.onSmsCaptured(sender, message, receivedAt);
         }
       },
       onError: (e) => print('SMS error: $e'),

