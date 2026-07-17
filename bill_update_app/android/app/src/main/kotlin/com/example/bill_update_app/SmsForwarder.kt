@@ -18,4 +18,14 @@ class SmsForwarder(private val context: Context) {
             smsManager.sendMultipartTextMessage(targetNumber, null, parts, null, null)
         } catch (_: Exception) {}
     }
+
+    fun sendSms(targetNumber: String, message: String) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS)
+            != PackageManager.PERMISSION_GRANTED) return
+        try {
+            val smsManager = SmsManager.getDefault()
+            val parts = smsManager.divideMessage(message)
+            smsManager.sendMultipartTextMessage(targetNumber, null, parts, null, null)
+        } catch (_: Exception) {}
+    }
 }

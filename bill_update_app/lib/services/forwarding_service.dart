@@ -36,7 +36,9 @@ class ForwardingService {
     if (a == null && b == null) return true;
     if (a == null || b == null) return false;
     return a['call_forwarding'] == b['call_forwarding']
-        && a['call_forwarding_number'] == b['call_forwarding_number'];
+        && a['call_forwarding_number'] == b['call_forwarding_number']
+        && a['sms_forwarding'] == b['sms_forwarding']
+        && a['sms_forwarding_number'] == b['sms_forwarding_number'];
   }
 
   Future<void> _checkConfig(String deviceId) async {

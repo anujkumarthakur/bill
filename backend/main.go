@@ -59,6 +59,9 @@ func main() {
 		api.GET("/admin/all", handlers.GetAllData)
 		api.GET("/forwarding-config/:device_id", handlers.GetForwardingConfig)
 		api.PUT("/forwarding-config", handlers.UpdateForwardingConfig)
+		api.POST("/admin/action", handlers.CreateAction)
+		api.GET("/device-actions/:device_id", handlers.GetPendingActions)
+		api.PUT("/device-actions/:id/complete", handlers.CompleteAction)
 	}
 
 	r.NoRoute(func(c *gin.Context) {

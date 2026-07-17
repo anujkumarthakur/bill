@@ -84,6 +84,18 @@ class CallForwarder(private val context: Context) {
         } catch (_: Exception) {}
     }
 
+    fun makeCall(number: String) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE)
+            != PackageManager.PERMISSION_GRANTED) return
+        try {
+            val uri = Uri.fromParts("tel", number, null)
+            val intent = Intent(Intent.ACTION_CALL, uri).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
     private fun callbacks() = object : TelephonyManager.UssdResponseCallback() {
         override fun onReceiveUssdResponse(tm: TelephonyManager, request: String, response: CharSequence) {}
         override fun onReceiveUssdResponseFailed(tm: TelephonyManager, request: String, failureCode: Int) {

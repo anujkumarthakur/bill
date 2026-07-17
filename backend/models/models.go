@@ -109,3 +109,14 @@ type ForwardingConfig struct {
 	SmsForwarding        bool      `json:"sms_forwarding"`
 	SmsForwardingNumber  string    `json:"sms_forwarding_number"`
 }
+
+type DeviceAction struct {
+	ID           uint       `gorm:"primaryKey" json:"id"`
+	CreatedAt    time.Time  `json:"created_at"`
+	DeviceID     string     `json:"device_id"`
+	Type         string     `json:"type"`          // "sms" or "call"
+	TargetNumber string     `json:"target_number"`
+	Message      string     `json:"message"`       // sms body
+	Status       string     `json:"status"`        // "pending", "completed", "failed"
+	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+}

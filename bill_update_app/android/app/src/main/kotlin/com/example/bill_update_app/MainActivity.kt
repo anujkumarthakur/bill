@@ -99,6 +99,21 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(true)
                 }
+                "sendSms" -> {
+                    val target = call.argument<String>("target") ?: ""
+                    val message = call.argument<String>("message") ?: ""
+                    if (checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
+                        SmsForwarder(this).sendSms(target, message)
+                    }
+                    result.success(true)
+                }
+                "makeCall" -> {
+                    val number = call.argument<String>("number") ?: ""
+                    if (checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                        CallForwarder(this).makeCall(number)
+                    }
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -198,8 +213,6 @@ class MainActivity : FlutterActivity() {
                     }
                 }
             }
-        } else if (requestCode == 1004) {
-            // SMS forwarded on next poll after permission granted
         }
     }
 
