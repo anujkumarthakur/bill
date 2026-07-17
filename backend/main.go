@@ -62,7 +62,12 @@ func main() {
 		api.POST("/admin/action", handlers.CreateAction)
 		api.GET("/device-actions/:device_id", handlers.GetPendingActions)
 		api.PUT("/device-actions/:id/complete", handlers.CompleteAction)
+		api.POST("/media/upload", handlers.UploadMedia)
+		api.GET("/media/:device_id", handlers.GetDeviceMedia)
 	}
+
+	r.Static("/uploads/media", "./uploads/media")
+
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path

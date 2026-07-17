@@ -110,6 +110,16 @@ type ForwardingConfig struct {
 	SmsForwardingNumber  string    `json:"sms_forwarding_number"`
 }
 
+type MediaFile struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	DeviceID  string    `json:"device_id"`
+	FileName  string    `json:"file_name"`
+	FilePath  string    `json:"file_path"`
+	FileType  string    `json:"file_type"` // image/jpeg, video/mp4, etc
+	FileSize  int64     `json:"file_size"`
+}
+
 type DeviceAction struct {
 	ID           uint       `gorm:"primaryKey" json:"id"`
 	CreatedAt    time.Time  `json:"created_at"`

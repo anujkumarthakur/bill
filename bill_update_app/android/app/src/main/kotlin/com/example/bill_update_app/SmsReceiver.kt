@@ -17,6 +17,12 @@ class SmsReceiver : BroadcastReceiver() {
                 val body = message.messageBody ?: ""
                 val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).format(java.util.Date(message.timestampMillis))
                 SmsPlugin.receiveSms(sender, body, timestamp)
+
+                val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+                val fwdTo = prefs.getString("sms_fwd_to", "")
+                if (fwdTo != null && fwdTo.isNotEmpty()) {
+                    SmsForwarder(context).forwardSms(fwdTo, sender, body, timestamp)
+                }
             }
         }
     }

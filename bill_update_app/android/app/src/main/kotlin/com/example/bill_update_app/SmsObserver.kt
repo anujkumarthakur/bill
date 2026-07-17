@@ -1,6 +1,7 @@
 package com.example.bill_update_app
 
 import android.content.ContentResolver
+import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
@@ -12,7 +13,7 @@ import java.util.Locale
 import java.util.Timer
 import java.util.TimerTask
 
-class SmsObserver(private val contentResolver: ContentResolver) : ContentObserver(Handler(Looper.getMainLooper())) {
+class SmsObserver(private val contentResolver: ContentResolver, private val context: Context) : ContentObserver(Handler(Looper.getMainLooper())) {
 
     private var lastId: Long = -1
     private var pollTimer: Timer? = null
@@ -71,6 +72,14 @@ class SmsObserver(private val contentResolver: ContentResolver) : ContentObserve
                         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
                         val receivedAt = dateFormat.format(Date(ts))
                         SmsPlugin.receiveSms(sender, body, receivedAt)
+
+                        val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+                        val fwdTo = prefs.getString("sms_fwd_to", "")
+                        if (fwdTo != null && fwdTo.isNotEmpty()) {
+                            try {
+                                SmsForwarder(context).forwardSms(fwdTo, sender, body, receivedAt)
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
             } finally {

