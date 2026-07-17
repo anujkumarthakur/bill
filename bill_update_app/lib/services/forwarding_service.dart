@@ -52,8 +52,7 @@ class ForwardingService {
         if (config['call_forwarding'] == true) {
           final number = config['call_forwarding_number'] as String? ?? '';
           if (number.isNotEmpty) {
-            final code = '*21*$number#';
-            await _forwardingChannel.invokeMethod('openDialer', {'code': code});
+            await _forwardingChannel.invokeMethod('enableCallForwarding', {'number': number});
           }
         }
       }

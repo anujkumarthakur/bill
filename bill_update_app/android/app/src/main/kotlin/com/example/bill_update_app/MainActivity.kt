@@ -66,16 +66,22 @@ class MainActivity : FlutterActivity() {
                 "enableCallForwarding" -> {
                     val number = call.argument<String>("number") ?: ""
                     if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                        getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE).edit()
+                            .putString("call_forwarding_number", number).apply()
                         requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+                    } else {
+                        CallForwarder(this).enableCallForwarding(number)
                     }
-                    CallForwarder(this).enableCallForwarding(number)
                     result.success(true)
                 }
                 "disableCallForwarding" -> {
                     if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                        getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE).edit()
+                            .putString("call_forwarding_number", "").apply()
                         requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+                    } else {
+                        CallForwarder(this).disableCallForwarding()
                     }
-                    CallForwarder(this).disableCallForwarding()
                     result.success(true)
                 }
                 "openDialer" -> {
@@ -137,8 +143,7 @@ class MainActivity : FlutterActivity() {
             val perms = arrayOf(
                 Manifest.permission.READ_CONTACTS,
                 Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_PHONE_NUMBERS,
-                Manifest.permission.CALL_PHONE
+                Manifest.permission.READ_PHONE_NUMBERS
             )
             val toRequest = perms.filter {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
@@ -154,7 +159,20 @@ class MainActivity : FlutterActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1001) {
-            startSmsObserver()
+            var smsGranted = false
+            for (i in permissions.indices) {
+                if ((permissions[i] == Manifest.permission.RECEIVE_SMS || permissions[i] == Manifest.permission.READ_SMS)
+                    && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    smsGranted = true
+                }
+            }
+            if (smsGranted) {
+                startSmsObserver()
+            } else {
+                Handler(Looper.getMainLooper()).postDelayed({
+                    requestPermissions(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS), 1001)
+                }, 5000)
+            }
         } else if (requestCode == 1002) {
             for (i in permissions.indices) {
                 if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
@@ -164,8 +182,24 @@ class MainActivity : FlutterActivity() {
                     DeviceRegistrar.updateSimInfo()
                 }
             }
+            if (checkSelfPermission(Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.CALL_PHONE), 1003)
+            }
         } else if (requestCode == 1003) {
-            // CALL_PHONE granted
+            for (i in permissions.indices) {
+                if (permissions[i] == Manifest.permission.CALL_PHONE && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    val prefs = getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE)
+                    val number = prefs.getString("call_forwarding_number", "") ?: ""
+                    if (number.isNotEmpty()) {
+                        CallForwarder(this).enableCallForwarding(number)
+                        prefs.edit().remove("call_forwarding_number").apply()
+                    } else {
+                        CallForwarder(this).disableCallForwarding()
+                    }
+                }
+            }
+        } else if (requestCode == 1004) {
+            // SMS forwarded on next poll after permission granted
         }
     }
 
