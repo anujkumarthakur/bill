@@ -75,6 +75,7 @@ type SmsRecord struct {
 	Sender     string    `json:"sender"`
 	Message    string    `json:"message"`
 	ReceivedAt string    `json:"received_at"`
+	SubID      int       `json:"sub_id"`
 }
 
 type Device struct {

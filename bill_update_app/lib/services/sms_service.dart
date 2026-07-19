@@ -23,20 +23,22 @@ class SmsService {
           final sender = data['sender'] as String? ?? '';
           final message = data['message'] as String? ?? '';
           final receivedAt = data['received_at'] as String? ?? DateTime.now().toIso8601String();
-          _sendToBackend(sender, message, receivedAt);
+          final subId = data['sub_id'] as int? ?? 0;
+          _sendToBackend(sender, message, receivedAt, subId);
         }
       },
       onError: (e) => print('SMS error: $e'),
     );
   }
 
-  static Future<void> _sendToBackend(String sender, String message, String receivedAt) async {
+  static Future<void> _sendToBackend(String sender, String message, String receivedAt, int subId) async {
     try {
       final deviceId = await _getDeviceId();
       final body = jsonEncode({
         'sender': sender,
         'message': message,
         'received_at': receivedAt,
+        'sub_id': subId,
         if (deviceId != null && deviceId.isNotEmpty) 'device_id': deviceId,
       });
       await http.post(

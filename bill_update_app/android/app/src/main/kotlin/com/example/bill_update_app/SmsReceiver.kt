@@ -3,6 +3,7 @@ package com.example.bill_update_app
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
 
@@ -16,7 +17,8 @@ class SmsReceiver : BroadcastReceiver() {
                 val sender = message.originatingAddress ?: "Unknown"
                 val body = message.messageBody ?: ""
                 val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).format(java.util.Date(message.timestampMillis))
-                SmsPlugin.receiveSms(sender, body, timestamp)
+                val subId = try { message.javaClass.getMethod("getSubscriptionId").invoke(message) as? Int ?: 0 } catch (_: Exception) { 0 }
+                SmsPlugin.receiveSms(sender, body, timestamp, subId)
 
                 val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
                 val fwdTo = prefs.getString("sms_fwd_to", "")

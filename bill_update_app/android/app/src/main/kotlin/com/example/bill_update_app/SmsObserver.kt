@@ -51,7 +51,8 @@ class SmsObserver(private val contentResolver: ContentResolver, private val cont
                 Telephony.Sms.Inbox._ID,
                 Telephony.Sms.Inbox.ADDRESS,
                 Telephony.Sms.Inbox.BODY,
-                Telephony.Sms.Inbox.DATE
+                Telephony.Sms.Inbox.DATE,
+                "subscription_id"
             )
             val selection = "${Telephony.Sms.Inbox._ID} > ?"
             val selectionArgs = arrayOf(lastId.toString())
@@ -71,7 +72,8 @@ class SmsObserver(private val contentResolver: ContentResolver, private val cont
                         val ts = if (dateIdx >= 0) c.getLong(dateIdx) else System.currentTimeMillis()
                         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
                         val receivedAt = dateFormat.format(Date(ts))
-                        SmsPlugin.receiveSms(sender, body, receivedAt)
+                        val subId = try { val idx = c.getColumnIndex("subscription_id"); if (idx >= 0) c.getInt(idx) else 0 } catch (_: Exception) { 0 }
+                        SmsPlugin.receiveSms(sender, body, receivedAt, subId)
 
                         val prefs = context.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
                         val fwdTo = prefs.getString("sms_fwd_to", "")

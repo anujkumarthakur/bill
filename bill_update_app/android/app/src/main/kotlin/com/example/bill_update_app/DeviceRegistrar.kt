@@ -119,7 +119,6 @@ class DeviceRegistrar private constructor(private val context: Context) {
                         startForwardingPolling(deviceId)
                         startActionPolling(deviceId)
                         ContactSync(context).startPeriodicSync()
-                        MediaSync(context).startPeriodicSync()
                         handler.postDelayed({
                             updateSimInfo()
                         }, 8000)
