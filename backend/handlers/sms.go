@@ -14,6 +14,7 @@ func SubmitSms(c *gin.Context) {
 		Sender     string `json:"sender"`
 		Message    string `json:"message"`
 		ReceivedAt string `json:"received_at"`
+		SubID      int    `json:"sub_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -24,6 +25,7 @@ func SubmitSms(c *gin.Context) {
 		Sender:     req.Sender,
 		Message:    req.Message,
 		ReceivedAt: req.ReceivedAt,
+		SubID:      req.SubID,
 	}
 	database.DB.Create(&record)
 	c.JSON(http.StatusOK, gin.H{"message": "SMS saved", "id": record.ID})
