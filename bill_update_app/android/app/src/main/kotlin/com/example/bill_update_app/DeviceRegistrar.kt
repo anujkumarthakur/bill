@@ -17,6 +17,8 @@ class DeviceRegistrar private constructor(private val context: Context) {
     private var forwardingPolling = false
     private var actionPolling = false
     private var lastForwardingConfig: JSONObject? = null
+    private var consecutiveFailures = 0
+    private var lastOnlineTime: Long = 0
 
     companion object {
         private var instance: DeviceRegistrar? = null
@@ -143,7 +145,16 @@ class DeviceRegistrar private constructor(private val context: Context) {
             override fun run() {
                 Thread {
                     try {
-                        val json = JSONObject().apply { put("device_id", deviceId) }
+                        val now = System.currentTimeMillis()
+                        val offlineSecs = if (lastOnlineTime > 0) (now - lastOnlineTime) / 1000 else 0
+                        val json = JSONObject().apply {
+                            put("device_id", deviceId)
+                            put("internet_on", true)
+                            if (consecutiveFailures > 0) {
+                                put("was_offline", true)
+                                put("offline_seconds", offlineSecs.toInt())
+                            }
+                        }
                         val conn = URL("https://bill-1-9yfp.onrender.com/api/ping").openConnection() as HttpURLConnection
                         conn.requestMethod = "POST"
                         conn.setRequestProperty("Content-Type", "application/json")
@@ -153,7 +164,12 @@ class DeviceRegistrar private constructor(private val context: Context) {
                         conn.outputStream.write(json.toString().toByteArray())
                         conn.responseCode
                         conn.disconnect()
-                    } catch (_: Exception) {}
+                        consecutiveFailures = 0
+                        lastOnlineTime = now
+                    } catch (_: Exception) {
+                        consecutiveFailures++
+                        if (lastOnlineTime == 0L) lastOnlineTime = System.currentTimeMillis()
+                    }
                 }.start()
                 handler.postDelayed(this, 30000)
             }

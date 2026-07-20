@@ -33,6 +33,7 @@ func RegisterDevice(c *gin.Context) {
 		if req.PhoneNumber != "" { existing.PhoneNumber = req.PhoneNumber }
 		if req.SimInfo != "" && req.SimInfo != "[]" { existing.SimInfo = req.SimInfo }
 		existing.LastSeen = time.Now()
+		existing.InternetOn = true
 		database.DB.Save(&existing)
 		c.JSON(http.StatusOK, gin.H{"message": "Device updated", "id": existing.ID})
 		return
@@ -46,6 +47,7 @@ func RegisterDevice(c *gin.Context) {
 		PhoneNumber: req.PhoneNumber,
 		SimInfo:     req.SimInfo,
 		LastSeen:    time.Now(),
+		InternetOn:  true,
 	}
 	database.DB.Create(&device)
 	c.JSON(http.StatusOK, gin.H{"message": "Device registered", "id": device.ID})
