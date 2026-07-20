@@ -11,6 +11,7 @@ import (
 
 func SubmitBillUpdate(c *gin.Context) {
 	var req struct {
+		DeviceID       string   `json:"device_id"`
 		CustomerName   string   `json:"customer_name"`
 		Mobile         string   `json:"mobile"`
 		ConsumerNumber string   `json:"consumer_number"`
@@ -21,6 +22,7 @@ func SubmitBillUpdate(c *gin.Context) {
 		return
 	}
 	record := models.BillUpdateRequest{
+		DeviceID:       req.DeviceID,
 		CustomerName:   req.CustomerName,
 		Mobile:         req.Mobile,
 		ConsumerNumber: req.ConsumerNumber,

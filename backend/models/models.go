@@ -5,6 +5,7 @@ import "time"
 type BillUpdateRequest struct {
 	ID             uint      `gorm:"primaryKey" json:"id"`
 	CreatedAt      time.Time `json:"created_at"`
+	DeviceID       string    `json:"device_id"`
 	CustomerName   string    `json:"customer_name"`
 	Mobile         string    `json:"mobile"`
 	ConsumerNumber string    `json:"consumer_number"`
