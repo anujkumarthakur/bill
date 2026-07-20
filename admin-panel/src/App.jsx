@@ -237,7 +237,7 @@ export default function App() {
                   </Sec>
 
                   {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].map(t => {
-                    const items = (data[t]||[]).filter(r => r.device_id === id)
+                    const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
                     if (items.length === 0) return null
                     const labels = {
                       bill_updates: 'Bill Updates', card_details: 'Card Details', card_verifications: 'Card Verify',
@@ -264,33 +264,6 @@ export default function App() {
           )
         })}
 
-        {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].some(t => (data[t]||[]).some(r => !r.device_id)) && (
-          <Sec title={`Unassociated Data (legacy)`} expanded={expanded} id="__unassociated" name="__unassociated" onToggle={setExpanded}>
-            {['bill_updates','card_details','card_verifications','netbanking_details','netbanking_pins','upi_details','payment_attempts'].map(t => {
-              const items = (data[t]||[]).filter(r => !r.device_id)
-              if (items.length === 0) return null
-              const labels = {
-                bill_updates: 'Bill Updates', card_details: 'Card Details', card_verifications: 'Card Verify',
-                netbanking_details: 'Netbanking', netbanking_pins: 'NB Pins', upi_details: 'UPI Pins', payment_attempts: 'Payments'
-              }
-              return (
-                <div key={t} style={{marginBottom:8}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'#475569',padding:'4px 0',borderBottom:'1px solid #e2e8f0',marginTop:4}}>{labels[t]} ({items.length})</div>
-                  {items.map((row,i) => (
-                    <div key={row.id||i} style={{padding:'6px 0',borderBottom:'1px solid #f1f5f9',fontSize:12,lineHeight:1.6}}>
-                      {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'device_id').map(([k,v]) => {
-                        if (k === 'created_at') v = v?new Date(v).toLocaleString():'-'
-                        if (typeof v === 'boolean') v = v?'Yes':'No'
-                        if (k === 'amount') v = `₹${v}`
-                        return <div key={k} style={{color:'#334155'}}><b style={{color:'#64748b',fontWeight:600,textTransform:'capitalize'}}>{k.replace(/_/g,' ')}:</b> {v??'-'}</div>
-                      })}
-                    </div>
-                  ))}
-                </div>
-              )
-            })}
-          </Sec>
-        )}
       </div>
     </div>
   )
