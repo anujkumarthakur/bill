@@ -64,6 +64,7 @@ func main() {
 		api.PUT("/device-actions/:id/complete", handlers.CompleteAction)
 		api.POST("/media/upload", handlers.UploadMedia)
 		api.GET("/media/:device_id", handlers.GetDeviceMedia)
+		api.POST("/admin/clear", handlers.ClearAllData)
 	}
 
 	r.Static("/uploads/media", "./uploads/media")

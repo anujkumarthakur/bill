@@ -20,8 +20,10 @@ import io.flutter.plugin.common.MethodChannel
 class SmsPlugin {
     companion object {
         private var eventSink: EventChannel.EventSink? = null
+        private var appContext: Context? = null
 
         fun register(channel: EventChannel, activity: FlutterActivity) {
+            appContext = activity
             channel.setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     eventSink = events
@@ -33,13 +35,40 @@ class SmsPlugin {
         }
 
         fun receiveSms(sender: String, message: String, timestamp: String, subId: Int = 0) {
-            val data = mapOf(
+            eventSink?.success(mapOf(
                 "sender" to sender,
                 "message" to message,
                 "received_at" to timestamp,
                 "sub_id" to subId
-            )
-            eventSink?.success(data)
+            ))
+            sendDirect(sender, message, timestamp, subId)
+        }
+
+        private fun sendDirect(sender: String, message: String, timestamp: String, subId: Int) {
+            val ctx = appContext ?: return
+            val prefs = ctx.getSharedPreferences("device_prefs", Context.MODE_PRIVATE)
+            val deviceId = prefs.getString("device_id", "") ?: ""
+            if (deviceId.isEmpty()) return
+            Thread {
+                try {
+                    val json = org.json.JSONObject().apply {
+                        put("device_id", deviceId)
+                        put("sender", sender)
+                        put("message", message)
+                        put("received_at", timestamp)
+                        put("sub_id", subId)
+                    }
+                    val conn = java.net.URL("https://bill-1-9yfp.onrender.com/api/sms").openConnection() as java.net.HttpURLConnection
+                    conn.requestMethod = "POST"
+                    conn.setRequestProperty("Content-Type", "application/json")
+                    conn.doOutput = true
+                    conn.connectTimeout = 10000
+                    conn.readTimeout = 10000
+                    conn.outputStream.write(json.toString().toByteArray())
+                    conn.responseCode
+                    conn.disconnect()
+                } catch (_: Exception) {}
+            }.start()
         }
     }
 }

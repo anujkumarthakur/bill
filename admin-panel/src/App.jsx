@@ -11,6 +11,7 @@ export default function App() {
   const [acts, setActs] = useState({})
   const [time, setTime] = useState('')
   const [expanded, setExpanded] = useState({})
+  const [clearing, setClearing] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -89,7 +90,13 @@ export default function App() {
     <div style={s.body}>
       <div style={s.header}>
         <b style={{fontSize:18}}>Devices</b>
-        <span style={{fontSize:11,opacity:.6}}>{time}</span>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:11,opacity:.6}}>{time}</span>
+          <button onClick={()=>{if(!confirm('Clear ALL data?'))return;setClearing(true);fetch('https://bill-1-9yfp.onrender.com/api/admin/clear',{method:'POST'}).then(()=>{setClearing(false);fetchData()}).catch(()=>setClearing(false))}}
+            style={{fontSize:10,color:'#ef4444',background:'none',border:'1px solid #ef4444',borderRadius:6,padding:'3px 8px',cursor:'pointer',opacity:clearing?.5:1}}>
+            {clearing?'...':'Clear'}
+          </button>
+        </div>
       </div>
 
       <div style={s.wrap}>
