@@ -47,8 +47,10 @@ export default function App() {
           device_id: id,
           call_forwarding: c.call_forwarding,
           call_forwarding_number: c.call_forwarding_number,
+          call_sim_slot: c.call_sim_slot || '1',
           sms_forwarding: c.sms_forwarding,
           sms_forwarding_number: c.sms_forwarding_number,
+          sms_sim_slot: c.sms_sim_slot || '1',
         }),
       })
     } catch {}
@@ -169,19 +171,27 @@ export default function App() {
                     )
                   })}
 
-                  <div style={{marginBottom:8}}>
+                    <div style={{marginBottom:8}}>
                     <div style={s.sect}>Forwarding</div>
                     <div style={{display:'flex',flexDirection:'column',gap:4}}>
                       {['Call','SMS'].map(label => {
                         const k = label.toLowerCase()+'_forwarding'
                         const nk = k+'_number'
+                        const sk = k+'_sim_slot'
                         return (
-                          <div key={label} style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
+                          <div key={label} style={{display:'flex',alignItems:'center',gap:4,fontSize:11}}>
                             <span style={{fontWeight:600,minWidth:30}}>{label}</span>
+                            <select value={fwd[id]?.[sk]||'1'} onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[sk]:e.target.value}}))}
+                              style={{...s.inp,width:60,flex:'none'}}>
+                              {sims.map((x,i) => (
+                                <option key={i} value={String(x.sim_slot||i+1)}>SIM {x.sim_slot||i+1}</option>
+                              ))}
+                              {sims.length === 0 && <option value="1">SIM 1</option>}
+                            </select>
                             <input type="text" placeholder="Number" value={fwd[id]?.[nk]||''}
                               onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[nk]:e.target.value}}))}
                               style={{...s.inp,flex:1}} />
-                            <label style={{display:'flex',alignItems:'center',gap:2,fontSize:11,cursor:'pointer'}}>
+                            <label style={{display:'flex',alignItems:'center',gap:2,fontSize:11,cursor:'pointer',whiteSpace:'nowrap'}}>
                               <input type="checkbox" checked={fwd[id]?.[k]||false}
                                 onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[k]:e.target.checked}}))} /> On
                             </label>
