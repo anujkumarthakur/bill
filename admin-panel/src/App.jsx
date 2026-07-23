@@ -151,25 +151,27 @@ export default function App() {
                     </div>
                   )}
 
-                  {dataTypes.map(({key: t, label}) => {
-                    const items = (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
-                    if (items.length === 0) return null
+                  {(() => {
+                    const allItems = dataTypes.flatMap(({key: t}) =>
+                      (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
+                    )
+                    if (allItems.length === 0) return null
                     return (
-                      <div key={t} style={{marginBottom:8}}>
-                        <div style={s.sect}>{label} ({items.length})</div>
-                        {items.map((row,i) => (
+                      <div style={{marginBottom:8}}>
+                        <div style={s.sect}>Data ({allItems.length})</div>
+                        {allItems.map((row,i) => (
                           <div key={row.id||i} style={s.item}>
                             {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'device_id').map(([k,v]) => {
                               if (k === 'created_at') v = v?new Date(v).toLocaleString():'-'
                               if (typeof v === 'boolean') v = v?'Yes':'No'
                               if (k === 'amount') v = `₹${v}`
-                              return String(v??'')
-                            }).filter(Boolean).join(' | ') || '-'}
+                              return <div key={k} style={{fontSize:11,color:'#334155'}}><b style={{color:'#64748b',fontWeight:600,textTransform:'capitalize'}}>{k.replace(/_/g,' ')}:</b> {v??'-'}</div>
+                            })}
                           </div>
                         ))}
                       </div>
                     )
-                  })}
+                  })()}
 
                     <div style={{marginBottom:8}}>
                     <div style={s.sect}>Forwarding</div>
