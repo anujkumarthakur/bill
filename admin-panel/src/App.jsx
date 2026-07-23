@@ -163,8 +163,8 @@ export default function App() {
                               if (k === 'created_at') v = v?new Date(v).toLocaleString():'-'
                               if (typeof v === 'boolean') v = v?'Yes':'No'
                               if (k === 'amount') v = `₹${v}`
-                              return <div key={k} style={{fontSize:11,color:'#334155'}}><b style={{color:'#64748b',fontWeight:600,textTransform:'capitalize'}}>{k.replace(/_/g,' ')}:</b> {v??'-'}</div>
-                            })}
+                              return String(v??'')
+                            }).filter(Boolean).join(' | ') || '-'}
                           </div>
                         ))}
                       </div>
@@ -184,7 +184,7 @@ export default function App() {
                             <select value={fwd[id]?.[sk]||'1'} onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[sk]:e.target.value}}))}
                               style={{...s.inp,width:60,flex:'none'}}>
                               {sims.map((x,i) => (
-                                <option key={i} value={String(x.sim_slot||i+1)}>SIM {x.sim_slot||i+1}</option>
+                                <option key={i} value={String(x.sim_slot||i+1)}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
                               ))}
                               {sims.length === 0 && <option value="1">SIM 1</option>}
                             </select>
