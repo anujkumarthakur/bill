@@ -157,8 +157,7 @@ export default function App() {
                     )
                     if (allItems.length === 0) return null
                     return (
-                      <div style={{marginBottom:8}}>
-                        <div style={s.sect}>Data ({allItems.length})</div>
+                      <Sec title={`Data (${allItems.length})`} expanded={expanded} id={id} name="data" onToggle={setExpanded}>
                         {allItems.map((row,i) => (
                           <div key={row.id||i} style={s.item}>
                             {Object.entries(row).filter(([k]) => k !== 'id' && k !== 'device_id').map(([k,v]) => {
@@ -169,7 +168,7 @@ export default function App() {
                             })}
                           </div>
                         ))}
-                      </div>
+                      </Sec>
                     )
                   })()}
 
