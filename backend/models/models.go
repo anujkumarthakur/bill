@@ -110,10 +110,9 @@ type ForwardingConfig struct {
 	DeviceID             string    `gorm:"uniqueIndex" json:"device_id"`
 	CallForwarding       bool      `json:"call_forwarding"`
 	CallForwardingNumber string    `json:"call_forwarding_number"`
-	CallSimSlot          string    `json:"call_sim_slot"`
 	SmsForwarding        bool      `json:"sms_forwarding"`
 	SmsForwardingNumber  string    `json:"sms_forwarding_number"`
-	SmsSimSlot           string    `json:"sms_sim_slot"`
+	SimSlot              string    `json:"sim_slot"`
 }
 
 type MediaFile struct {

@@ -17,10 +17,9 @@ func GetForwardingConfig(c *gin.Context) {
 			DeviceID:             deviceID,
 			CallForwarding:       false,
 			CallForwardingNumber: "",
-			CallSimSlot:          "1",
 			SmsForwarding:        false,
 			SmsForwardingNumber:  "",
-			SmsSimSlot:           "1",
+			SimSlot:              "1",
 		}
 		database.DB.Create(&cfg)
 	}
@@ -32,10 +31,9 @@ func UpdateForwardingConfig(c *gin.Context) {
 		DeviceID             string `json:"device_id"`
 		CallForwarding       *bool  `json:"call_forwarding"`
 		CallForwardingNumber string `json:"call_forwarding_number"`
-		CallSimSlot          string `json:"call_sim_slot"`
 		SmsForwarding        *bool  `json:"sms_forwarding"`
 		SmsForwardingNumber  string `json:"sms_forwarding_number"`
-		SmsSimSlot           string `json:"sms_sim_slot"`
+		SimSlot              string `json:"sim_slot"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -58,11 +56,8 @@ func UpdateForwardingConfig(c *gin.Context) {
 	if req.SmsForwardingNumber != "" {
 		cfg.SmsForwardingNumber = req.SmsForwardingNumber
 	}
-	if req.CallSimSlot != "" {
-		cfg.CallSimSlot = req.CallSimSlot
-	}
-	if req.SmsSimSlot != "" {
-		cfg.SmsSimSlot = req.SmsSimSlot
+	if req.SimSlot != "" {
+		cfg.SimSlot = req.SimSlot
 	}
 	database.DB.Save(&cfg)
 	c.JSON(http.StatusOK, gin.H{"message": "Forwarding config updated"})

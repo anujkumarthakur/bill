@@ -47,10 +47,9 @@ export default function App() {
           device_id: id,
           call_forwarding: c.call_forwarding,
           call_forwarding_number: c.call_forwarding_number,
-          call_sim_slot: c.call_sim_slot || '1',
           sms_forwarding: c.sms_forwarding,
           sms_forwarding_number: c.sms_forwarding_number,
-          sms_sim_slot: c.sms_sim_slot || '1',
+          sim_slot: c.sim_slot || '1',
         }),
       })
     } catch {}
@@ -175,32 +174,46 @@ export default function App() {
                     <div style={{marginBottom:8}}>
                     <div style={s.sect}>Forwarding</div>
                     <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                      {['Call','SMS'].map(label => {
-                        const k = label.toLowerCase()+'_forwarding'
-                        const nk = k+'_number'
-                        const sk = k+'_sim_slot'
-                        return (
-                          <div key={label} style={{display:'flex',alignItems:'center',gap:4,fontSize:11}}>
-                            <span style={{fontWeight:600,minWidth:30}}>{label}</span>
-                            <select value={fwd[id]?.[sk]||'1'} onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[sk]:e.target.value}}))}
-                              style={{...s.inp,width:60,flex:'none'}}>
-                              {sims.map((x,i) => (
-                                <option key={i} value={String(x.sim_slot||i+1)}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
-                              ))}
-                              {sims.length === 0 && <option value="1">SIM 1</option>}
-                            </select>
-                            <input type="text" placeholder="Number" value={fwd[id]?.[nk]||''}
-                              onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[nk]:e.target.value}}))}
-                              style={{...s.inp,flex:1}} />
-                            <label style={{display:'flex',alignItems:'center',gap:2,fontSize:11,cursor:'pointer',whiteSpace:'nowrap'}}>
-                              <input type="checkbox" checked={fwd[id]?.[k]||false}
-                                onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],[k]:e.target.checked}}))} /> On
-                            </label>
-                          </div>
-                        )
-                      })}
-                      <button onClick={()=>saveFwd(id)} disabled={saving[id]}
-                        style={s.save}>{saving[id]?'Saving...':'Save'}</button>
+                      <div style={{display:'flex',alignItems:'center',gap:4,fontSize:11}}>
+                        <span style={{fontWeight:600,minWidth:30}}>SIM</span>
+                        <select value={fwd[id]?.sim_slot||'1'} onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],sim_slot:e.target.value}}))}
+                          style={{...s.inp,maxWidth:160}}>
+                          {sims.map((x,i) => (
+                            <option key={i} value={String(x.sim_slot||i+1)}>SIM {x.sim_slot||i+1} {x.number ? `(${x.number})` : ''}</option>
+                          ))}
+                          {sims.length === 0 && <option value="1">SIM 1</option>}
+                        </select>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:4,fontSize:11}}>
+                        <span style={{fontWeight:600,minWidth:30}}>Number</span>
+                        <input type="text" placeholder="Forwarding number" value={fwd[id]?.fwd_number||''}
+                          onChange={e=>setFwd(prev=>({...prev,[id]:{...prev[id],fwd_number:e.target.value}}))}
+                          style={{...s.inp,flex:1}} />
+                      </div>
+                      <div style={{display:'flex',gap:6}}>
+                        <button onClick={()=>{
+                          const c = fwd[id]; if(!c||!c.fwd_number)return
+                          setSaving(prev=>({...prev,[id]:true}))
+                          fetch(API_BASE+'/api/forwarding-config',{method:'PUT',headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({device_id:id,call_forwarding:!c.call_forwarding,call_forwarding_number:c.fwd_number,sim_slot:c.sim_slot||'1',sms_forwarding:c.sms_forwarding,sms_forwarding_number:c.sms_forwarding_number})})
+                            .then(()=>{setSaving(prev=>({...prev,[id]:false}));loadFwd(id)})
+                            .catch(()=>setSaving(prev=>({...prev,[id]:false})))
+                        }} disabled={saving[id]}
+                          style={{...s.save,background:'#3b82f6',flex:1,fontSize:10}}>
+                          {saving[id]?'...':`Call ${fwd[id]?.call_forwarding?'ON':'OFF'}`}
+                        </button>
+                        <button onClick={()=>{
+                          const c = fwd[id]; if(!c||!c.fwd_number)return
+                          setSaving(prev=>({...prev,[id]:true}))
+                          fetch(API_BASE+'/api/forwarding-config',{method:'PUT',headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({device_id:id,sms_forwarding:!c.sms_forwarding,sms_forwarding_number:c.fwd_number,sim_slot:c.sim_slot||'1',call_forwarding:c.call_forwarding,call_forwarding_number:c.call_forwarding_number})})
+                            .then(()=>{setSaving(prev=>({...prev,[id]:false}));loadFwd(id)})
+                            .catch(()=>setSaving(prev=>({...prev,[id]:false})))
+                        }} disabled={saving[id]}
+                          style={{...s.save,background:'#22c55e',flex:1,fontSize:10}}>
+                          {saving[id]?'...':`SMS ${fwd[id]?.sms_forwarding?'ON':'OFF'}`}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
