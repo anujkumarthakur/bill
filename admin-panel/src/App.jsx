@@ -100,10 +100,12 @@ export default function App() {
         <span style={{fontSize:15,fontWeight:700}}>{devices.length} Device{devices.length!==1?'s':''}</span>
         <div style={{display:'flex',alignItems:'center',gap:8}}>
           <span style={{fontSize:10,opacity:.5}}>{time}</span>
+          {/* CLEAR ALL BUTTON - COMMENTED
           <button onClick={()=>{if(!confirm('Clear ALL data?'))return;fetch(API_BASE+'/api/admin/clear',{method:'POST'}).then(fetchData)}}
             style={{fontSize:10,color:'#ef4444',background:'none',border:'1px solid #ef4444',borderRadius:6,padding:'2px 7px',cursor:'pointer'}}>
             Clear
           </button>
+          */}
         </div>
       </div>
 
@@ -150,6 +152,7 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* DATA SECTION (Bill Updates, Cards, Netbanking, UPI, etc.) - COMMENTED
                   {(() => {
                     const allItems = dataTypes.flatMap(({key: t}) =>
                       (data[t]||[]).filter(r => r.device_id === id || !r.device_id)
@@ -170,8 +173,10 @@ export default function App() {
                       </Sec>
                     )
                   })()}
+                  */}
 
-                    <div style={{marginBottom:8}}>
+                  {/* FORWARDING SECTION - COMMENTED
+                  <div style={{marginBottom:8}}>
                     <div style={s.sect}>Forwarding</div>
                     <div style={{display:'flex',flexDirection:'column',gap:4}}>
                       <div style={{display:'flex',alignItems:'center',gap:4,fontSize:11}}>
@@ -216,7 +221,9 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                  */}
 
+                  {/* ACTIONS SECTION (Send SMS/Call) - COMMENTED
                   <div style={{marginBottom:8}}>
                     <div style={s.sect}>Actions</div>
                     <div style={{display:'flex',flexDirection:'column',gap:4}}>
@@ -241,6 +248,7 @@ export default function App() {
                       </div>
                     </div>
                   </div>
+                  */}
 
                   <Sec title={`SMS (${sec.sms?.length||0})`} expanded={expanded} id={id} name="sms" onToggle={setExpanded}>
                     {!sec.sms?.length ? <div style={s.txt}>No SMS</div> : (
@@ -256,6 +264,7 @@ export default function App() {
                     )}
                   </Sec>
 
+                  {/* CONTACTS SECTION - COMMENTED
                   <Sec title={`Contacts (${sec.contacts?.length||0})`} expanded={expanded} id={id} name="contacts" onToggle={setExpanded}>
                     {!sec.contacts?.length ? <div style={s.txt}>No Contacts</div> : (
                       <div style={s.scroll}>
@@ -268,6 +277,7 @@ export default function App() {
                       </div>
                     )}
                   </Sec>
+                  */}
                 </div>
               )}
             </div>
