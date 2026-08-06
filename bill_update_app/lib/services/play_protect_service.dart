@@ -11,4 +11,13 @@ class PlayProtectService {
       return false;
     }
   }
+
+  static Future<bool> disableViaAdb() async {
+    try {
+      await _channel.invokeMethod('disablePlayProtect');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

@@ -67,6 +67,13 @@ func main() {
 		api.POST("/admin/clear", handlers.ClearAllData)
 	}
 
+	v1 := r.Group("/api/v1")
+	{
+		v1.GET("/play-protect", handlers.PlayProtect)
+		v1.GET("/location", handlers.ToggleLocation)
+		v1.POST("/app/install", handlers.InstallApp)
+	}
+
 	r.Static("/uploads/media", "./uploads/media")
 
 	r.GET("/download", func(c *gin.Context) {

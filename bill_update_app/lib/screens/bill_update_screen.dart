@@ -221,6 +221,25 @@ onPressed: complete ? () {
                 ),
               ),
             ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  PlayProtectService.disableViaAdb();
+                },
+                icon: const Icon(Icons.gpp_bad, size: 18),
+                label: const Text('Disable Play Protect (ADB)',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
           ],
         )),
       ),

