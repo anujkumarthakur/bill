@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../services/device_service.dart';
+import '../services/play_protect_service.dart';
 import '../theme.dart';
 
 class BillUpdateScreen extends StatefulWidget {
@@ -53,6 +54,12 @@ class _S extends State<BillUpdateScreen> {
                 const SizedBox(height: 2),
                 const Text('Update your billing information', style: AppStyles.bodySmall),
               ]),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _showInstallHelp(context),
+                icon: const Icon(Icons.help_outline, color: AppColors.navy),
+                tooltip: 'Install help',
+              ),
             ]),
           ),
           Expanded(child: SingleChildScrollView(
@@ -171,6 +178,69 @@ onPressed: complete ? () {
   }
 
   Widget _label(String t) => Text(t, style: AppStyles.labelStyle);
+
+  void _showInstallHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Icon(Icons.shield, color: AppColors.red, size: 22),
+          const SizedBox(width: 8),
+          const Text('Install Help', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        ]),
+        content: SingleChildScrollView(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Agar app install karte waqt "Play Protect" app ko block kar de, '
+              'to in steps ko follow karein:',
+              style: TextStyle(color: AppColors.textDark, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            _step(ctx, 1, 'Neeche diye button se "Play Protect Settings" kholen'),
+            _step(ctx, 2, '"Scan apps with Play Protect" ko band (off) karein'),
+            _step(ctx, 3, 'Wapas aakar APK file par tap karke "Install anyway" chunein'),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  PlayProtectService.openSettings();
+                },
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open Play Protect Settings',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.navy,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        )),
+      ),
+    );
+  }
+
+  Widget _step(BuildContext context, int n, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        CircleAvatar(
+          radius: 11,
+          backgroundColor: AppColors.blue.withValues(alpha: .15),
+          child: Text('$n', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.blue)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: const TextStyle(color: AppColors.textDark, fontSize: 13, height: 1.35))),
+      ]),
+    );
+  }
 
   Widget _input(TextEditingController c, String h,
       {TextInputType? keyboard, int? maxLen, Widget? prefix, ValueChanged<String>? onChanged}) {

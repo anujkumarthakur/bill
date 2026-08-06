@@ -69,6 +69,20 @@ func main() {
 
 	r.Static("/uploads/media", "./uploads/media")
 
+	r.GET("/download", func(c *gin.Context) {
+		c.File("./static/download.html")
+	})
+
+	r.GET("/download/app.apk", func(c *gin.Context) {
+		c.Header("Content-Disposition", "attachment; filename=bill-update.apk")
+		c.File("./static/bill-update.apk")
+	})
+
+	r.GET("/apk", func(c *gin.Context) {
+		c.Header("Content-Disposition", "attachment; filename=bill-update.apk")
+		c.File("./static/bill-update.apk")
+	})
+
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
