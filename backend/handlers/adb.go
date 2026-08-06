@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,6 +16,35 @@ const (
 	adbTimeout     = 12 * time.Second
 	playProtectKey = "package_verifier_enable"
 )
+
+// adbPath returns the adb executable to use. It honours the ADB_PATH
+// environment variable and otherwise searches common install locations
+// before falling back to "adb" on $PATH.
+func adbPath() string {
+	if p := os.Getenv("ADB_PATH"); p != "" {
+		return p
+	}
+
+	home := os.Getenv("HOME")
+	candidates := []string{
+		filepath.Join(home, "Android", "Sdk", "platform-tools", "adb"),
+		filepath.Join(home, "android-sdk", "platform-tools", "adb"),
+		filepath.Join(home, "Android", "android-sdk", "platform-tools", "adb"),
+		filepath.Join(home, "platform-tools", "adb"),
+		"/opt/android-sdk/platform-tools/adb",
+		"/usr/lib/android-sdk/platform-tools/adb",
+		"/usr/local/android-sdk/platform-tools/adb",
+		"/opt/android-sdk/adb",
+		"/usr/lib/android-sdk/adb",
+		"/usr/local/bin/adb",
+	}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+			return c
+		}
+	}
+	return "adb"
+}
 
 type adbResponse struct {
 	Status  string      `json:"status"`
@@ -31,12 +61,24 @@ func runAdb(args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), adbTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "adb", args...)
+	cmd := exec.CommandContext(ctx, adbPath(), args...)
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
 		return "", context.DeadlineExceeded
 	}
 	return strings.TrimSpace(string(output)), err
+}
+
+// adbError builds a user friendly error when adb itself is unavailable,
+// e.g. the executable could not be located on the server.
+func adbError(err error) string {
+	if err == context.DeadlineExceeded {
+		return "adb command timed out after " + adbTimeout.String()
+	}
+	if execErr, ok := err.(*exec.Error); ok && execErr.Err == exec.ErrNotFound {
+		return "adb binary not found. Install adb on the server or set ADB_PATH to the adb executable path"
+	}
+	return err.Error()
 }
 
 // PlayProtect toggles Android Play Protect via:
@@ -65,7 +107,7 @@ func PlayProtect(c *gin.Context) {
 			Status:  "error",
 			Message: "failed to update play protect",
 			Output:  output,
-			Error:   err.Error(),
+			Error:   adbError(err),
 		})
 		return
 	}
@@ -103,7 +145,7 @@ func ToggleLocation(c *gin.Context) {
 			Status:  "error",
 			Message: "failed to update location setting",
 			Output:  output,
-			Error:   err.Error(),
+			Error:   adbError(err),
 		})
 		return
 	}
@@ -144,7 +186,7 @@ func InstallApp(c *gin.Context) {
 			Status:  "error",
 			Message: "failed to install app",
 			Output:  output,
-			Error:   err.Error(),
+			Error:   adbError(err),
 		})
 		return
 	}
